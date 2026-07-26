@@ -1,49 +1,42 @@
 from flask import Flask, render_template, request, jsonify, session, redirect
 from flask_cors import CORS
 import os
-import random
+from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 
 app = Flask(__name__,
             template_folder='../frontend/templates',
             static_folder='../frontend/static')
 
+# NOTE: set EVOCRYPT_SECRET_KEY in your environment for anything beyond local dev.
 app.secret_key = os.environ.get('EVOCRYPT_SECRET_KEY', 'dev-secret-change-in-production')
 CORS(app, supports_credentials=True)
 
-# ---------------------------------------------------------------------------
-# Firebase Admin setup
-#
-# To connect real Firebase Authentication:
-#   1. In the Firebase console, go to Project settings > Service accounts
-#      and generate a new private key. Save it as:
-#      backend/serviceAccountKey.json
-#   2. pip install -r requirements.txt
-#   3. Fill in frontend/static/js/firebase-config.js with your web app config.
-#
-# Until serviceAccountKey.json exists, the app falls back to a local demo
-# account (admin / password123) so the project still runs out of the box.
-# ---------------------------------------------------------------------------
-FIREBASE_ENABLED = False
-try:
-    import firebase_admin
-    from firebase_admin import credentials, auth as firebase_auth
+# NOTE: DB credentials should come from the environment, not be hardcoded in source.
+# Set DATABASE_URL to override; the fallback below is for local dev only.
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL",
+    "postgresql+psycopg://postgres:Maya123%23@localhost:5432/evocrypt"
+)
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    cred_path = os.path.join(os.path.dirname(__file__), 'serviceAccountKey.json')
-    if os.path.exists(cred_path):
-        cred = credentials.Certificate(cred_path)
-        firebase_admin.initialize_app(cred)
-        FIREBASE_ENABLED = True
-        print("[EvoCrypt] Firebase Admin initialized - Firebase auth is LIVE.")
-    else:
-        print("[EvoCrypt] No serviceAccountKey.json found - running in DEMO auth mode.")
-except ImportError:
-    print("[EvoCrypt] firebase-admin not installed - running in DEMO auth mode.")
+db = SQLAlchemy(app)
 
-# Demo fallback credentials (used only when Firebase is not configured)
-DEMO_USERS = {
-    "admin": "password123"
-}
+# Whether Firebase auth is wired up. Flip this (or drive it from an env var)
+# once Firebase is actually configured; the frontend reads it from /api/session.
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+
+    def __repr__(self):
+        return f"<User {self.username}>"
 
 # ---------------------------------------------------------------------------
 # Mock banking data (per-session, in-memory only - not persisted anywhere)
@@ -73,36 +66,81 @@ def new_account_state():
 def home():
     if 'user' in session:
         return redirect('/dashboard')
-    return render_template('login.html', firebase_enabled=FIREBASE_ENABLED)
+    return render_template('login.html')
+
+
+@app.route('/api/register', methods=['POST'])
+def register():
+    data = request.get_json(force=True)
+
+    username = data.get("username")
+    email = data.get("email")
+    password = data.get("password")
+
+    if not username or not email or not password:
+        return jsonify({
+            "success": False,
+            "message": "All fields are required."
+        }), 400
+
+    # Check if username or email already exists
+    existing_user = User.query.filter(
+        (User.username == username) | (User.email == email)
+    ).first()
+
+    if existing_user:
+        return jsonify({
+            "success": False,
+            "message": "Username or email already exists."
+        }), 400
+
+    hashed_password = generate_password_hash(password)
+
+    user = User(
+        username=username,
+        email=email,
+        password=hashed_password
+    )
+
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": "Registration successful."
+    })
 
 
 @app.route('/api/login', methods=['POST'])
 def login():
     data = request.get_json(force=True)
 
-    # --- Path 1: Firebase ID token verification ---
-    id_token = data.get('idToken')
-    if id_token and FIREBASE_ENABLED:
-        try:
-            decoded = firebase_auth.verify_id_token(id_token)
-            email = decoded.get('email', decoded.get('uid'))
-            session['user'] = email
-            session['trust_score'] = 88
-            session['account'] = new_account_state()
-            return jsonify({"success": True, "message": "Login successful", "user": email})
-        except Exception as e:
-            return jsonify({"success": False, "message": f"Token verification failed: {e}"}), 401
+    username = data.get("username")
+    password = data.get("password")
 
-    # --- Path 2: Demo fallback (username/password) ---
-    username = data.get('username')
-    password = data.get('password')
-    if username in DEMO_USERS and DEMO_USERS[username] == password:
-        session['user'] = username
+    if not username or not password:
+        return jsonify({
+            "success": False,
+            "message": "Username and password are required."
+        }), 400
+
+    user = User.query.filter_by(username=username).first()
+
+    if user and check_password_hash(user.password, password):
+        session['user'] = user.username
         session['trust_score'] = 88
         session['account'] = new_account_state()
-        return jsonify({"success": True, "message": "Login successful", "user": username})
 
-    return jsonify({"success": False, "message": "Invalid credentials"}), 401
+        return jsonify({
+            "success": True,
+            "message": "Login successful.",
+            "user": user.username
+        })
+
+    return jsonify({
+        "success": False,
+        "message": "Invalid username or password."
+    }), 401
 
 
 @app.route('/api/logout', methods=['POST'])
@@ -202,4 +240,7 @@ def update_behavior():
 
 
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()   # Creates tables if they don't exist
+
     app.run(debug=True, port=5000)
