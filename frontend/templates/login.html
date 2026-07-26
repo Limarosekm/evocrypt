@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EvoCrypt Bank - Sign In</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="scan-backdrop"></div>
+    <div class="login-shell">
+        <div class="login-container">
+            <div class="brand-mark">
+                <div class="brand-glyph">EC</div>
+                <h1>EvoCrypt Bank</h1>
+            </div>
+            <p class="tagline">CONTINUOUS-TRUST ONLINE BANKING</p>
+
+            <div class="auth-error" id="auth-error"></div>
+
+            <p id="form-title">Sign in to EvoCrypt</p>
+
+            <form onsubmit="handleAuthSubmit(event)">
+                <label class="field-label" for="email">Email or username</label>
+                <input type="text" id="email" placeholder="you@example.com" autocomplete="username">
+
+                <label class="field-label" for="password">Password</label>
+                <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+
+                <button type="submit" id="submit-btn">Sign in</button>
+            </form>
+
+            <p class="auth-toggle" id="auth-toggle-text">
+                New here? <a href="#" onclick="setAuthMode('signup'); return false;">Create an account</a>
+            </p>
+
+            <div class="demo-hint">
+                DEMO MODE — Firebase not yet configured.<br>
+                Sign in with <strong>admin</strong> / <strong>password123</strong>,
+                or add your project keys in
+                static/js/firebase-config.js to go live.
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (only activates once FIREBASE_CONFIGURED is set to true
+         in firebase-config.js) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+</body>
+</html>

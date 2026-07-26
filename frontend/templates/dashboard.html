@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EvoCrypt Bank - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div class="brand-mark">
+                <div class="brand-glyph">EC</div>
+                <h1>EvoCrypt</h1>
+            </div>
+
+            <div class="nav-item active">Overview</div>
+            <div class="nav-item">Transfers</div>
+            <div class="nav-item">Security</div>
+            <div class="nav-item">Statements</div>
+
+            <div class="sidebar-spacer"></div>
+            <button class="logout-btn" onclick="logout()">Sign out</button>
+        </aside>
+
+        <main class="main">
+            <div class="topbar">
+                <h2>Account overview</h2>
+                <div class="welcome">SIGNED IN AS {{ user | upper }}</div>
+            </div>
+
+            <div class="grid">
+                <div class="col-main">
+                    <div class="card">
+                        <h3>Checking Balance</h3>
+                        <div class="balance-amount" id="balance-amount">$--.--</div>
+                        <div class="account-number" id="account-number">**** ****</div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Recent Activity</h3>
+                        <div id="tx-list"></div>
+                    </div>
+
+                    <div class="card">
+                        <h3>Send a Transfer</h3>
+                        <label class="field-label" for="recipient">Recipient</label>
+                        <input type="text" id="recipient" placeholder="e.g. Jordan Lee">
+                        <label class="field-label" for="amount">Amount (USD)</label>
+                        <div class="transfer-row">
+                            <input type="number" id="amount" placeholder="0.00" min="0" step="0.01">
+                            <button onclick="sendTransfer()">Send</button>
+                        </div>
+                        <div id="transfer-msg"></div>
+                    </div>
+                </div>
+
+                <div class="col-side">
+                    <div class="card">
+                        <h3>Continuous Trust Monitor</h3>
+                        <div class="trust-score-value high" id="trust-score">--</div>
+                        <div class="trust-status-label" id="trust-status">Loading…</div>
+
+                        <div class="pulse-wrap">
+                            <svg class="pulse-svg" viewBox="0 0 260 60" width="100%" height="60" preserveAspectRatio="none">
+                                <path class="pulse-line" id="pulse-path" stroke="#2dd4bf" d="M0,30 L260,30"></path>
+                            </svg>
+                        </div>
+
+                        <div class="signal-list">
+                            <div><span>Keystroke rhythm</span><span class="val" id="sig-keystroke">nominal</span></div>
+                            <div><span>Pointer motion</span><span class="val" id="sig-pointer">nominal</span></div>
+                            <div><span>Session age</span><span class="val" id="sig-session">0:00</span></div>
+                        </div>
+
+                        <button class="simulate-btn" onclick="simulateAnomaly()">Simulate suspicious behavior</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/behavioral.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
