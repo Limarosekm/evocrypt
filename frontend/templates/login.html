@@ -21,8 +21,13 @@
             <p id="form-title">Sign in to EvoCrypt</p>
 
             <form onsubmit="handleAuthSubmit(event)">
-                <label class="field-label" for="email">Email or username</label>
-                <input type="text" id="email" placeholder="you@example.com" autocomplete="username">
+                <label class="field-label" for="email">Username</label>
+
+<input
+type="text"
+id="email"
+placeholder="Enter Username"
+autocomplete="username">
 
                 <label class="field-label" for="password">Password</label>
                 <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
@@ -43,11 +48,7 @@
         </div>
     </div>
 
-    <!-- Firebase SDK (only activates once FIREBASE_CONFIGURED is set to true
-         in firebase-config.js) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-    <script src="{{ url_for('static', filename='js/firebase-config.js') }}"></script>
+    
     <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>
