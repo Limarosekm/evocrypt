@@ -1,0 +1,162 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1"
+    >
+
+    <title>EvoCrypt Demo</title>
+
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='css/style.css') }}"
+    >
+
+</head>
+
+
+<body>
+
+    <div class="scan-backdrop"></div>
+
+
+    <main class="login-shell">
+
+        <section class="login-container">
+
+
+            <!-- BRAND -->
+
+            <div class="brand-mark">
+
+                <div class="brand-glyph">
+                    EC
+                </div>
+
+                <div>
+
+                    <h1>
+                        EvoCrypt
+                    </h1>
+
+                    <div class="tagline">
+                        adaptive session security
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- FORM TITLE -->
+
+            <h2 id="form-title">
+                Sign in to EvoCrypt
+            </h2>
+
+
+            <!-- ERROR -->
+
+            <div
+                id="auth-error"
+                class="auth-error"
+            ></div>
+
+
+            <!-- AUTH FORM -->
+
+            <form
+                onsubmit="handleAuthSubmit(event)"
+            >
+
+                <label
+                    class="field-label"
+                    for="email"
+                >
+                    Username
+                </label>
+
+                <input
+                    id="email"
+                    type="text"
+                    autocomplete="username"
+                    required
+                >
+
+
+                <label
+                    class="field-label"
+                    for="password"
+                >
+                    Password
+                </label>
+
+                <input
+                    id="password"
+                    type="password"
+                    autocomplete="current-password"
+                    required
+                >
+
+
+                <button
+                    id="submit-btn"
+                    type="submit"
+                >
+                    Sign In
+                </button>
+
+            </form>
+
+
+            <!-- SIGN UP TOGGLE -->
+
+            <div
+                id="auth-toggle-text"
+                class="auth-toggle"
+            >
+
+                New here?
+
+                <a
+                    href="#"
+                    onclick="setAuthMode('signup'); return false;"
+                >
+                    Create an account
+                </a>
+
+            </div>
+
+
+            <!-- DEMO INFORMATION -->
+
+            <div class="demo-hint">
+
+                DEMO APPLICATION
+
+                <br>
+
+                Register your own account,
+                then sign in.
+
+            </div>
+
+
+        </section>
+
+    </main>
+
+
+    <script
+        src="{{ url_for('static', filename='js/auth.js') }}"
+    ></script>
+
+</body>
+
+</html>

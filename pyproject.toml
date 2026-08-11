@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "evocrypt"
+version = "0.1.0"
+description = "Adaptive security framework for continuous session protection"
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "Flask==3.0.3",
+    "Flask-Cors==4.0.1",
+    "Flask-SQLAlchemy==3.1.1",
+    "Werkzeug==3.0.3",
+    "cryptography",
+]
+
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+
+[tool.setuptools.packages.find]
+include = ["evocrypt*"]

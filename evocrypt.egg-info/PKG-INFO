@@ -1,0 +1,87 @@
+Metadata-Version: 2.4
+Name: evocrypt
+Version: 0.1.0
+Summary: Adaptive security framework for continuous session protection
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: Flask==3.0.3
+Requires-Dist: Flask-Cors==4.0.1
+Requires-Dist: Flask-SQLAlchemy==3.1.1
+Requires-Dist: Werkzeug==3.0.3
+Requires-Dist: cryptography
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+
+# EvoCrypt Bank
+
+A simulated online banking app with a continuous-trust security dashboard
+(behavioral "trust score" that reacts to typing rhythm and pointer motion).
+Login is wired for Firebase Authentication, with a local demo fallback so it
+runs immediately.
+
+## Project structure
+
+```
+evocrypt-bank/
+  backend/
+    app.py                  Flask app + API routes
+    requirements.txt
+    serviceAccountKey.json  <- you add this (Firebase Admin credentials)
+  frontend/
+    templates/
+      login.html
+      dashboard.html
+    static/
+      css/style.css
+      js/firebase-config.js <- you fill in your Firebase web config
+      js/auth.js
+      js/behavioral.js
+      js/dashboard.js
+```
+
+## Run it right now (demo mode, no setup)
+
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
+
+Visit `http://localhost:5000` and sign in with:
+- **Username:** `admin`
+- **Password:** `password123`
+
+Demo mode is on automatically whenever no `serviceAccountKey.json` is present.
+
+## Connect real Firebase Authentication
+
+1. **Create a Firebase project** at https://console.firebase.google.com
+2. **Enable Email/Password sign-in**: Authentication > Sign-in method > Email/Password > Enable
+3. **Get your web app config**: Project settings > General > "Your apps" > Add app (</> web icon).
+   Copy the `firebaseConfig` object into
+   `frontend/static/js/firebase-config.js`, replacing the placeholder values,
+   and set `FIREBASE_CONFIGURED = true` at the bottom of that file.
+4. **Get a service account key** (for the backend to verify tokens):
+   Project settings > Service accounts > Generate new private key.
+   Save the downloaded file as `backend/serviceAccountKey.json`.
+5. **Install dependencies and run**:
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   python app.py
+   ```
+
+When `serviceAccountKey.json` is present, the server logs
+`Firebase Admin initialized - Firebase auth is LIVE.` on startup, and the
+login page will create/verify accounts through Firebase instead of the demo
+credentials.
+
+## Notes
+
+- Account balances and transactions are mock, in-memory data generated per
+  session — nothing is persisted to a real bank or database.
+- The trust score is a simplified illustration of continuous authentication:
+  it reacts to keystroke cadence, pointer motion, and transfer size. It is
+  not a production security model.
+- `app.secret_key` in `app.py` should be set via the `EVOCRYPT_SECRET_KEY`
+  environment variable in any real deployment.
