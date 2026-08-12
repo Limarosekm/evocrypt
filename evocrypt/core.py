@@ -308,9 +308,15 @@ class EvoCrypt:
 
         # Select adaptive security action
         action = self.agent.choose_action(
-            state,
-            explore=False
-        )
+    state,
+    explore=False
+)
+
+# Apply mandatory safety boundaries
+        action = self.agent.safe_action(
+         session.trust_score,
+         action
+    )
 
         session.last_decision_at = (
             datetime.now(timezone.utc)

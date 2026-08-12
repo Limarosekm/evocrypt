@@ -110,12 +110,10 @@ class AdaptivePolicyAgent:
         # --------------------------------------------------------
 
         self.q_table: Dict[str, Dict[str, float]] = {
-
             state: {
                 action: 0.0
                 for action in self.ACTIONS
             }
-
             for state in self.STATES
         }
 
@@ -153,7 +151,6 @@ class AdaptivePolicyAgent:
             TypeError,
             ValueError
         ):
-
             score = 0.0
 
         score = max(
@@ -215,7 +212,6 @@ class AdaptivePolicyAgent:
             random.random() <
             self.exploration_rate
         ):
-
             return random.choice(
                 self.ACTIONS
             )
@@ -228,20 +224,30 @@ class AdaptivePolicyAgent:
             state
         ]
 
+        # --------------------------------------------------------
+        # SAFE DEFAULT BEFORE RL TRAINING
+        # --------------------------------------------------------
+        # When all Q-values are zero, the agent has not learned
+        # anything yet. Do not randomly select an action.
+
+        if all(
+            value == 0.0
+            for value in values.values()
+        ):
+            return "NORMAL"
+
         maximum = max(
             values.values()
         )
 
-        # Random tie breaking prevents the first action
-        # from always winning when Q-values are identical.
+        # --------------------------------------------------------
+        # RANDOM TIE BREAKING
+        # --------------------------------------------------------
 
         best_actions = [
-
             action
-
             for action, value
             in values.items()
-
             if value == maximum
         ]
 
@@ -304,7 +310,6 @@ class AdaptivePolicyAgent:
         )
 
         try:
-
             reward = float(
                 reward
             )
@@ -313,7 +318,6 @@ class AdaptivePolicyAgent:
             TypeError,
             ValueError
         ):
-
             reward = 0.0
 
         current_q = self.q_table[
@@ -322,9 +326,17 @@ class AdaptivePolicyAgent:
             action
         ]
 
+        # --------------------------------------------------------
+        # TERMINAL STATE
+        # --------------------------------------------------------
+
         if done:
 
             target = reward
+
+        # --------------------------------------------------------
+        # NON-TERMINAL STATE
+        # --------------------------------------------------------
 
         else:
 
@@ -341,6 +353,10 @@ class AdaptivePolicyAgent:
                 *
                 next_best_q
             )
+
+        # --------------------------------------------------------
+        # Q-LEARNING FORMULA
+        # --------------------------------------------------------
 
         new_q = (
             current_q
@@ -384,7 +400,12 @@ class AdaptivePolicyAgent:
                     "reward": 3,
                     "next_state": "HIGH"
                 },
-                ...
+                {
+                    "state": "HIGH",
+                    "action": "ROTATE_KEY",
+                    "reward": 5,
+                    "next_state": "MEDIUM"
+                }
             ]
 
         Returns training statistics.
@@ -440,6 +461,10 @@ class AdaptivePolicyAgent:
             ):
                 pass
 
+        # --------------------------------------------------------
+        # Reduce exploration after episode
+        # --------------------------------------------------------
+
         self.decay_exploration()
 
         return {
@@ -472,9 +497,7 @@ class AdaptivePolicyAgent:
         """
 
         self.exploration_rate = max(
-
             self.minimum_exploration,
-
             self.exploration_rate
             *
             self.exploration_decay
@@ -492,11 +515,9 @@ class AdaptivePolicyAgent:
         """
 
         return {
-
             state: dict(
                 actions
             )
-
             for state, actions
             in self.q_table.items()
         }
@@ -569,12 +590,10 @@ class AdaptivePolicyAgent:
         """
 
         self.q_table = {
-
             state: {
                 action: 0.0
                 for action in self.ACTIONS
             }
-
             for state in self.STATES
         }
 
@@ -636,7 +655,6 @@ class AdaptivePolicyAgent:
                 "NORMAL",
                 "MONITOR"
             }:
-
                 return "HYBRID_PQC"
 
         # --------------------------------------------------------
@@ -648,6 +666,10 @@ class AdaptivePolicyAgent:
             if action == "NORMAL":
 
                 return "MONITOR"
+
+        # --------------------------------------------------------
+        # High trust
+        # --------------------------------------------------------
 
         return action
 
@@ -665,7 +687,6 @@ class AdaptivePolicyAgent:
         """
 
         return {
-
             "learning_rate":
                 self.learning_rate,
 
@@ -674,6 +695,12 @@ class AdaptivePolicyAgent:
 
             "exploration_rate":
                 self.exploration_rate,
+
+            "exploration_decay":
+                self.exploration_decay,
+
+            "minimum_exploration":
+                self.minimum_exploration,
 
             "training_steps":
                 self.training_steps,
@@ -695,13 +722,11 @@ class AdaptivePolicyAgent:
             state,
             str
         ):
-
             return "HIGH"
 
         state = state.upper().strip()
 
         aliases = {
-
             "VERY LOW":
                 "VERY_LOW",
 
@@ -729,6 +754,10 @@ class AdaptivePolicyAgent:
 
         return state
 
+    # ============================================================
+    # ACTION NORMALIZATION
+    # ============================================================
+
     def _normalize_action(
         self,
         action: Optional[str]
@@ -738,13 +767,11 @@ class AdaptivePolicyAgent:
             action,
             str
         ):
-
             return "MONITOR"
 
         action = action.upper().strip()
 
         aliases = {
-
             "ROTATE":
                 "ROTATE_KEY",
 

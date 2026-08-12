@@ -52,7 +52,7 @@ app.secret_key = os.environ.get(
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
-    "sqlite:///" + os.path.join(BASE, "demo.db")
+    "postgresql+psycopg2://postgres:qwerty@localhost:5432/evocrypt"
 )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
