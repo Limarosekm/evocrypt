@@ -52,7 +52,7 @@ app.secret_key = os.environ.get(
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg2://postgres:qwerty@localhost:5432/evocrypt"
+    "postgresql+psycopg2://postgres:Lima%402005@localhost:5432/evocrypt"
 )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -206,7 +206,117 @@ class BehaviorLog(db.Model):
         db.DateTime,
         default=datetime.utcnow
     )
+class UserBehaviourProfile(db.Model):
 
+    __tablename__ = "user_behaviour_profile"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    username = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False
+    )
+
+    sessions_completed = db.Column(
+        db.Integer,
+        default=0
+    )
+
+    profile_status = db.Column(
+        db.String(50),
+        default="learning"
+    )
+
+    learning_complete = db.Column(
+        db.Boolean,
+        default=False
+    )
+
+    avg_typing_speed = db.Column(
+        db.Float,
+        default=0.0
+    )
+
+    avg_key_hold = db.Column(
+        db.Float,
+        default=0.0
+    )
+
+    avg_mouse_speed = db.Column(
+        db.Float,
+        default=0.0
+    )
+
+    avg_mouse_distance = db.Column(
+        db.Float,
+        default=0.0
+    )
+
+    avg_click_count = db.Column(
+        db.Float,
+        default=0.0
+    )
+
+    avg_scroll_distance = db.Column(
+        db.Float,
+        default=0.0
+    )
+
+    avg_idle_time = db.Column(
+        db.Float,
+        default=0.0
+    )
+
+    usual_browser = db.Column(
+        db.String(255)
+    )
+
+    usual_operating_system = db.Column(
+        db.String(255)
+    )
+
+    usual_screen_width = db.Column(
+        db.Integer
+    )
+
+    usual_screen_height = db.Column(
+        db.Integer
+    )
+
+    usual_device_fingerprint = db.Column(
+        db.String(255)
+    )
+
+    usual_ip = db.Column(
+        db.String(255)
+    )
+
+    usual_city = db.Column(
+        db.String(255)
+    )
+
+    usual_country = db.Column(
+        db.String(255)
+    )
+
+    usual_login_hour = db.Column(
+        db.Integer
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
+
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow
+    )
 
 # ============================================================
 # HELPER FUNCTIONS
@@ -316,16 +426,51 @@ def start_buffer(username):
 
 def save_completed_session(username):
 
-    buffer = session_buffer.get(
-        username
-    )
+    buffer = session_buffer.get(username)
 
-    session_id = session.get(
-        "session_id"
-    )
+    session_id = session.get("session_id")
 
     if not buffer or not session_id:
-        return
+        return False
+
+    # --------------------------------------------------------
+    # 1. Calculate current session values
+    # --------------------------------------------------------
+
+    session_values = {
+
+        "typing_speed": avg(
+            buffer["typing_speed"]
+        ),
+
+        "avg_key_hold": avg(
+            buffer["avg_key_hold"]
+        ),
+
+        "mouse_speed": avg(
+            buffer["mouse_speed"]
+        ),
+
+        "mouse_distance": avg(
+            buffer["mouse_distance"]
+        ),
+
+        "click_count": avg(
+            buffer["click_count"]
+        ),
+
+        "scroll_distance": avg(
+            buffer["scroll_distance"]
+        ),
+
+        "idle_time": avg(
+            buffer["idle_time"]
+        )
+    }
+
+    # --------------------------------------------------------
+    # 2. Save the completed session
+    # --------------------------------------------------------
 
     log = BehaviorLog(
 
@@ -333,33 +478,33 @@ def save_completed_session(username):
 
         session_id=session_id,
 
-        typing_speed=avg(
-            buffer["typing_speed"]
-        ),
+        typing_speed=session_values[
+            "typing_speed"
+        ],
 
-        avg_key_hold=avg(
-            buffer["avg_key_hold"]
-        ),
+        avg_key_hold=session_values[
+            "avg_key_hold"
+        ],
 
-        mouse_speed=avg(
-            buffer["mouse_speed"]
-        ),
+        mouse_speed=session_values[
+            "mouse_speed"
+        ],
 
-        mouse_distance=avg(
-            buffer["mouse_distance"]
-        ),
+        mouse_distance=session_values[
+            "mouse_distance"
+        ],
 
-        click_count=avg(
-            buffer["click_count"]
-        ),
+        click_count=session_values[
+            "click_count"
+        ],
 
-        scroll_distance=avg(
-            buffer["scroll_distance"]
-        ),
+        scroll_distance=session_values[
+            "scroll_distance"
+        ],
 
-        idle_time=avg(
-            buffer["idle_time"]
-        ),
+        idle_time=session_values[
+            "idle_time"
+        ],
 
         screen_width=buffer[
             "screen_width"
@@ -380,13 +525,138 @@ def save_completed_session(username):
 
     db.session.add(log)
 
+    db.session.flush()
+
+    # --------------------------------------------------------
+    # 3. Get/create user's behavioural profile
+    # --------------------------------------------------------
+
+    profile = UserBehaviourProfile.query.filter_by(
+        username=username
+    ).first()
+
+    if profile is None:
+
+        profile = UserBehaviourProfile(
+            username=username,
+            sessions_completed=0,
+            profile_status="learning",
+            learning_complete=False
+        )
+
+        db.session.add(profile)
+
+        db.session.flush()
+
+    # --------------------------------------------------------
+    # 4. Get all completed sessions for this user
+    # --------------------------------------------------------
+
+    logs = BehaviorLog.query.filter_by(
+        username=username
+    ).all()
+
+    # --------------------------------------------------------
+    # 5. Update session count
+    # --------------------------------------------------------
+
+    profile.sessions_completed = len(logs)
+
+    # --------------------------------------------------------
+    # 6. Calculate behavioural averages
+    # --------------------------------------------------------
+
+    profile.avg_typing_speed = avg([
+        log.typing_speed
+        for log in logs
+    ])
+
+    profile.avg_key_hold = avg([
+        log.avg_key_hold
+        for log in logs
+    ])
+
+    profile.avg_mouse_speed = avg([
+        log.mouse_speed
+        for log in logs
+    ])
+
+    profile.avg_mouse_distance = avg([
+        log.mouse_distance
+        for log in logs
+    ])
+
+    profile.avg_click_count = avg([
+        log.click_count
+        for log in logs
+    ])
+
+    profile.avg_scroll_distance = avg([
+        log.scroll_distance
+        for log in logs
+    ])
+
+    profile.avg_idle_time = avg([
+        log.idle_time
+        for log in logs
+    ])
+
+    # --------------------------------------------------------
+    # 7. Update usual device/browser information
+    # --------------------------------------------------------
+
+    if buffer["browser"]:
+        profile.usual_browser = buffer["browser"]
+
+    if buffer["operating_system"]:
+        profile.usual_operating_system = (
+            buffer["operating_system"]
+        )
+
+    if buffer["screen_width"]:
+        profile.usual_screen_width = (
+            buffer["screen_width"]
+        )
+
+    if buffer["screen_height"]:
+        profile.usual_screen_height = (
+            buffer["screen_height"]
+        )
+
+    # --------------------------------------------------------
+    # 8. Learning status
+    # --------------------------------------------------------
+
+    if profile.sessions_completed >= 10:
+
+        profile.learning_complete = True
+
+        profile.profile_status = "complete"
+
+    else:
+
+        profile.learning_complete = False
+
+        profile.profile_status = "learning"
+
+    profile.updated_at = datetime.utcnow()
+
+    # --------------------------------------------------------
+    # 9. Commit everything
+    # --------------------------------------------------------
+
     db.session.commit()
+
+    # --------------------------------------------------------
+    # 10. Clear temporary session data
+    # --------------------------------------------------------
 
     session_buffer.pop(
         username,
         None
     )
 
+    return True
 
 # ============================================================
 # WEB PAGES
