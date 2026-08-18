@@ -426,6 +426,67 @@
                         Simulate Session Hijacking
 
                     </button>
+                    <!-- =================================================
+     RL POLICY DEMONSTRATION
+     ================================================= -->
+
+<div class="rl-demo">
+
+    <div class="decision-title">
+        RL POLICY DEMONSTRATION
+    </div>
+
+    <div class="rl-demo-subtitle">
+        Test the trained adaptive security policy
+    </div>
+
+
+    <div class="rl-scenarios">
+
+        <button
+            onclick="runRLDemo('normal')"
+        >
+            Normal
+        </button>
+
+        <button
+            onclick="runRLDemo('behavioral_anomaly')"
+        >
+            Behavioral Anomaly
+        </button>
+
+        <button
+            onclick="runRLDemo('device_takeover')"
+        >
+            Device Takeover
+        </button>
+
+        <button
+            onclick="runRLDemo('high_value_transaction')"
+        >
+            High-Value Transaction
+        </button>
+
+        <button
+            onclick="runRLDemo('combined_attack')"
+        >
+            Combined Attack
+        </button>
+
+    </div>
+
+
+    <div
+        id="rl-demo-result"
+        class="rl-demo-result"
+    >
+
+        Select a scenario to test the
+        trained RL policy.
+
+    </div>
+
+</div>
 
 
                 </div>

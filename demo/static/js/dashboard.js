@@ -716,3 +716,222 @@ setInterval(
     updateSignalReadout,
     1000
 );
+// ============================================================
+// RL POLICY DEMONSTRATION
+// ============================================================
+
+async function runRLDemo(scenario) {
+
+    const resultBox =
+        document.getElementById(
+            "rl-demo-result"
+        );
+
+    resultBox.innerHTML =
+        "Running trained RL policy...";
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/rl-demo",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            scenario:
+                                scenario
+                        })
+                }
+            );
+
+        const data =
+            await response.json();
+
+
+        if (!data.success) {
+
+            resultBox.innerHTML =
+                `
+                <div class="rl-error">
+                    ${escapeHtml(
+                        data.message ||
+                        "RL demonstration failed."
+                    )}
+                </div>
+                `;
+
+            return;
+        }
+
+
+        const inputs =
+            data.inputs;
+
+        const decision =
+            data.decision;
+
+
+        resultBox.innerHTML = `
+
+            <div class="rl-result-title">
+                ${formatScenario(
+                    data.scenario
+                )}
+            </div>
+
+
+            <div class="rl-section-label">
+                SECURITY INPUTS
+            </div>
+
+
+            <div class="rl-input-grid">
+
+                <div>
+                    <span>Trust</span>
+                    <strong>
+                        ${inputs.trust_score}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Threat</span>
+                    <strong>
+                        ${inputs.threat_score}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Behavior</span>
+                    <strong>
+                        ${inputs.behavioral_risk}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Device</span>
+                    <strong>
+                        ${inputs.device_risk}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Transaction</span>
+                    <strong>
+                        ${inputs.transaction_risk}
+                    </strong>
+                </div>
+
+                <div>
+                    <span>Recovery</span>
+                    <strong>
+                        ${inputs.recovery_phase}
+                    </strong>
+                </div>
+
+            </div>
+
+
+            <div class="rl-section-label">
+                RL STATE
+            </div>
+
+
+            <div class="rl-state">
+                ${escapeHtml(
+                    decision.state
+                )}
+            </div>
+
+
+            <div class="rl-section-label">
+                RL DECISION
+            </div>
+
+
+            <div class="rl-action">
+                ${escapeHtml(
+                    decision.action
+                )}
+            </div>
+
+
+            <div class="rl-meta">
+
+                <span>
+                    Risk:
+                    <strong>
+                        ${escapeHtml(
+                            decision.risk_level
+                        )}
+                    </strong>
+                </span>
+
+                <span>
+                    Confidence:
+                    <strong>
+                        ${decision.confidence}
+                    </strong>
+                </span>
+
+            </div>
+
+
+            <div class="rl-section-label">
+                EXPLANATION
+            </div>
+
+
+            <ul class="rl-reasons">
+
+                ${
+                    (decision.reasons || [])
+                        .slice(0, 4)
+                        .map(
+                            reason =>
+                                `<li>${escapeHtml(
+                                    reason
+                                )}</li>`
+                        )
+                        .join("")
+                }
+
+            </ul>
+
+        `;
+
+    } catch (error) {
+
+        console.error(
+            "RL demo failed:",
+            error
+        );
+
+        resultBox.innerHTML =
+            `
+            <div class="rl-error">
+                Unable to run RL policy.
+            </div>
+            `;
+    }
+}
+
+
+function formatScenario(value) {
+
+    return value
+        .split("_")
+        .map(
+            word =>
+                word.charAt(0).toUpperCase() +
+                word.slice(1)
+        )
+        .join(" ");
+}

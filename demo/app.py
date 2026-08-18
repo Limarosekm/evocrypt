@@ -52,7 +52,7 @@ app.secret_key = os.environ.get(
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg2://postgres:Lima%402005@localhost:5432/evocrypt"
+    "postgresql+psycopg2://postgres:Maya123#@localhost:5432/evocrypt"
 )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -1215,7 +1215,142 @@ def behavior():
 
         security=result
     )
+# ============================================================
+# RL POLICY DEMONSTRATION
+# ============================================================
 
+@app.post("/api/rl-demo")
+def rl_demo():
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+    scenario = (
+        str(
+            data.get(
+                "scenario",
+                "normal"
+            )
+        )
+        .lower()
+        .strip()
+    )
+
+    scenarios = {
+
+        "normal": {
+            "trust_score": 92,
+            "threat_score": 8,
+            "behavioral_risk": 0,
+            "device_risk": 0,
+            "transaction_risk": 0,
+            "recovery_phase": 0,
+            "previous_action": "MONITOR",
+            "stability_steps": 0,
+        },
+
+        "behavioral_anomaly": {
+            "trust_score": 72,
+            "threat_score": 25,
+            "behavioral_risk": 3,
+            "device_risk": 0,
+            "transaction_risk": 0,
+            "recovery_phase": 0,
+            "previous_action": "MONITOR",
+            "stability_steps": 0,
+        },
+
+        "device_takeover": {
+            "trust_score": 58,
+            "threat_score": 44,
+            "behavioral_risk": 2,
+            "device_risk": 3,
+            "transaction_risk": 0,
+            "recovery_phase": 0,
+            "previous_action": "MONITOR",
+            "stability_steps": 0,
+        },
+
+        "high_value_transaction": {
+            "trust_score": 63,
+            "threat_score": 40,
+            "behavioral_risk": 0,
+            "device_risk": 0,
+            "transaction_risk": 3,
+            "recovery_phase": 0,
+            "previous_action": "MONITOR",
+            "stability_steps": 0,
+        },
+
+        "combined_attack": {
+            "trust_score": 44,
+            "threat_score": 80,
+            "behavioral_risk": 3,
+            "device_risk": 3,
+            "transaction_risk": 3,
+            "recovery_phase": 0,
+            "previous_action": "MONITOR",
+            "stability_steps": 0,
+        },
+    }
+
+    if scenario not in scenarios:
+
+        return jsonify(
+            success=False,
+            message="Unknown RL scenario."
+        ), 400
+
+    try:
+
+        from evocrypt.rl.policy import (
+            AdaptiveSecurityPolicy
+        )
+
+        from evocrypt.rl.agent import (
+            AdaptivePolicyAgent
+        )
+
+        policy_path = os.path.join(
+            os.path.dirname(BASE),
+            "evocrypt_policy_final.json"
+        )
+
+        agent = AdaptivePolicyAgent()
+
+        agent.load(
+            policy_path
+        )
+
+        policy = AdaptiveSecurityPolicy(
+            agent
+        )
+
+        values = scenarios[
+            scenario
+        ]
+
+        decision = policy.decide(
+            **values
+        )
+
+        return jsonify(
+            success=True,
+            scenario=scenario,
+            inputs=values,
+            decision=decision.to_dict()
+        )
+
+    except Exception as error:
+
+        return jsonify(
+            success=False,
+            message=str(error)
+        ), 500
 
 # ============================================================
 # APPLICATION START

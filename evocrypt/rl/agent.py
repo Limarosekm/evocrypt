@@ -1,37 +1,24 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
+import json
 import random
 
 
 class AdaptivePolicyAgent:
     """
-    Lightweight Q-Learning agent for EvoCrypt.
+    Tabular Q-learning policy engine for EvoCrypt.
 
-    The agent receives a trust state and selects the most
-    appropriate security action.
+    Backward compatibility:
+      - The original four trust states are still supported.
+      - Existing tests using state_from_trust(), q_table and set_q_value()
+        continue to work.
 
-    States:
-
-        VERY_LOW
-        LOW
-        MEDIUM
-        HIGH
-
-    Actions:
-
-        NORMAL
-        MONITOR
-        ROTATE_KEY
-        REAUTHENTICATE
-        HYBRID_PQC
-        TERMINATE_SESSION
-
-    The Q-table is intentionally small so that training and
-    inference remain lightweight.
+    New behavior:
+      - Arbitrary encoded SecurityState strings can be used as states.
+      - States are created lazily.
+      - Q-values can be inspected at runtime.
+      - Policies can be exported/imported as JSON.
+      - A simple confidence score is exposed for the dashboard.
     """
-
-    # ============================================================
-    # STATES
-    # ============================================================
 
     STATES = [
         "HIGH",
@@ -39,10 +26,6 @@ class AdaptivePolicyAgent:
         "LOW",
         "VERY_LOW",
     ]
-
-    # ============================================================
-    # ACTIONS
-    # ============================================================
 
     ACTIONS = [
         "NORMAL",
@@ -53,211 +36,93 @@ class AdaptivePolicyAgent:
         "TERMINATE_SESSION",
     ]
 
-    # ============================================================
-    # INITIALIZATION
-    # ============================================================
-
     def __init__(
         self,
         learning_rate: float = 0.10,
         discount_factor: float = 0.90,
-        exploration_rate: float = 0.10,
+        exploration_rate: float = 0.20,
         exploration_decay: float = 0.995,
-        minimum_exploration: float = 0.01,
+        minimum_exploration: float = 0.02,
+        seed: Optional[int] = 42,
     ):
-        """
-        Initialize the Q-learning agent.
+        self.learning_rate = float(learning_rate)
+        self.discount_factor = float(discount_factor)
+        self.exploration_rate = float(exploration_rate)
+        self.exploration_decay = float(exploration_decay)
+        self.minimum_exploration = float(minimum_exploration)
 
-        Args:
-            learning_rate:
-                How strongly new experiences modify the Q-table.
-
-            discount_factor:
-                Importance of future rewards.
-
-            exploration_rate:
-                Probability of trying a random action.
-
-            exploration_decay:
-                Reduces exploration after training.
-
-            minimum_exploration:
-                Minimum amount of exploration allowed.
-        """
-
-        self.learning_rate = float(
-            learning_rate
-        )
-
-        self.discount_factor = float(
-            discount_factor
-        )
-
-        self.exploration_rate = float(
-            exploration_rate
-        )
-
-        self.exploration_decay = float(
-            exploration_decay
-        )
-
-        self.minimum_exploration = float(
-            minimum_exploration
-        )
-
-        # --------------------------------------------------------
-        # Q-table
-        # --------------------------------------------------------
+        if seed is not None:
+            self._rng = random.Random(seed)
+        else:
+            self._rng = random.Random()
 
         self.q_table: Dict[str, Dict[str, float]] = {
-            state: {
-                action: 0.0
-                for action in self.ACTIONS
-            }
+            state: {action: 0.0 for action in self.ACTIONS}
             for state in self.STATES
         }
 
-        # --------------------------------------------------------
-        # Training statistics
-        # --------------------------------------------------------
-
         self.training_steps = 0
+        self.episodes = 0
 
-    # ============================================================
-    # TRUST → STATE
-    # ============================================================
+    def _ensure_state(self, state: str) -> str:
+        state = str(state or "HIGH")
+        if state not in self.q_table:
+            self.q_table[state] = {
+                action: 0.0 for action in self.ACTIONS
+            }
+        return state
 
-    def state_from_trust(
-        self,
-        trust_score: float
-    ) -> str:
-        """
-        Convert a numerical trust score into an RL state.
-
-        Mapping:
-
-            70-100 → HIGH
-            40-69  → MEDIUM
-            20-39  → LOW
-            0-19   → VERY_LOW
-        """
-
+    def state_from_trust(self, trust_score: float) -> str:
         try:
-            score = float(
-                trust_score
-            )
-
-        except (
-            TypeError,
-            ValueError
-        ):
+            score = float(trust_score)
+        except (TypeError, ValueError):
             score = 0.0
 
-        score = max(
-            0.0,
-            min(
-                100.0,
-                score
-            )
-        )
+        score = max(0.0, min(100.0, score))
 
         if score >= 70:
             return "HIGH"
-
         if score >= 40:
             return "MEDIUM"
-
         if score >= 20:
             return "LOW"
-
         return "VERY_LOW"
-
-    # ============================================================
-    # ACTION SELECTION
-    # ============================================================
 
     def choose_action(
         self,
         state: str,
-        explore: bool = False
+        explore: bool = False,
+        allowed_actions: Optional[List[str]] = None,
     ) -> str:
-        """
-        Select an action for the current state.
+        state = self._ensure_state(
+        state
+    )
+        self._ensure_state(state)
 
-        Args:
-            state:
-                Current RL state.
-
-            explore:
-                If True, epsilon-greedy exploration is enabled.
-
-                Runtime EvoCrypt normally uses:
-                    explore=False
-
-                Training normally uses:
-                    explore=True
-        """
-
-        state = self._normalize_state(
-            state
-        )
-
-        # --------------------------------------------------------
-        # Exploration
-        # --------------------------------------------------------
-
-        if (
-            explore
-            and
-            random.random() <
-            self.exploration_rate
-        ):
-            return random.choice(
-                self.ACTIONS
-            )
-
-        # --------------------------------------------------------
-        # Exploitation
-        # --------------------------------------------------------
-
-        values = self.q_table[
-            state
+        actions = [
+            self._normalize_action(action)
+            for action in (allowed_actions or self.ACTIONS)
         ]
+        actions = [a for a in actions if a in self.ACTIONS]
+        if not actions:
+            actions = list(self.ACTIONS)
 
-        # --------------------------------------------------------
-        # SAFE DEFAULT BEFORE RL TRAINING
-        # --------------------------------------------------------
-        # When all Q-values are zero, the agent has not learned
-        # anything yet. Do not randomly select an action.
+        if explore and self._rng.random() < self.exploration_rate:
+            return self._rng.choice(actions)
 
-        if all(
-            value == 0.0
-            for value in values.values()
-        ):
-            return "NORMAL"
+        values = self.q_table[state]
 
-        maximum = max(
-            values.values()
-        )
+        # Before training, use a deterministic safe default.
+        if all(values[action] == 0.0 for action in actions):
+            return "MONITOR" if "MONITOR" in actions else actions[0]
 
-        # --------------------------------------------------------
-        # RANDOM TIE BREAKING
-        # --------------------------------------------------------
-
+        maximum = max(values[action] for action in actions)
         best_actions = [
-            action
-            for action, value
-            in values.items()
-            if value == maximum
+            action for action in actions
+            if values[action] == maximum
         ]
 
-        return random.choice(
-            best_actions
-        )
-
-    # ============================================================
-    # Q-LEARNING UPDATE
-    # ============================================================
+        return self._rng.choice(best_actions)
 
     def update(
         self,
@@ -265,277 +130,89 @@ class AdaptivePolicyAgent:
         action: str,
         reward: float,
         next_state: str,
-        done: bool = False
+        done: bool = False,
     ) -> float:
-        """
-        Perform one Q-learning update.
+        state = self._ensure_state(
+    state
+)
 
-        Formula:
-
-        Q(s,a) =
-            Q(s,a)
-            +
-            α[
-                r
-                +
-                γ max Q(s',a')
-                -
-                Q(s,a)
-            ]
-
-        If the episode is finished:
-
-            Q(s,a) =
-                Q(s,a)
-                +
-                α[
-                    r -
-                    Q(s,a)
-                ]
-
-        Returns:
-            Updated Q-value.
-        """
-
-        state = self._normalize_state(
-            state
-        )
-
-        next_state = self._normalize_state(
+        next_state = self._ensure_state(
             next_state
         )
+        action = self._normalize_action(action)
 
-        action = self._normalize_action(
-            action
-        )
+        self._ensure_state(state)
+        self._ensure_state(next_state)
 
         try:
-            reward = float(
-                reward
-            )
-
-        except (
-            TypeError,
-            ValueError
-        ):
+            reward = float(reward)
+        except (TypeError, ValueError):
             reward = 0.0
 
-        current_q = self.q_table[
-            state
-        ][
-            action
-        ]
-
-        # --------------------------------------------------------
-        # TERMINAL STATE
-        # --------------------------------------------------------
+        current_q = self.q_table[state][action]
 
         if done:
-
             target = reward
-
-        # --------------------------------------------------------
-        # NON-TERMINAL STATE
-        # --------------------------------------------------------
-
         else:
+            next_best_q = max(self.q_table[next_state].values())
+            target = reward + self.discount_factor * next_best_q
 
-            next_best_q = max(
-                self.q_table[
-                    next_state
-                ].values()
-            )
-
-            target = (
-                reward
-                +
-                self.discount_factor
-                *
-                next_best_q
-            )
-
-        # --------------------------------------------------------
-        # Q-LEARNING FORMULA
-        # --------------------------------------------------------
-
-        new_q = (
-            current_q
-            +
-            self.learning_rate
-            *
-            (
-                target
-                -
-                current_q
-            )
-        )
-
-        self.q_table[
-            state
-        ][
-            action
-        ] = new_q
-
+        new_q = current_q + self.learning_rate * (target - current_q)
+        self.q_table[state][action] = new_q
         self.training_steps += 1
 
         return new_q
 
-    # ============================================================
-    # TRAINING EPISODE
-    # ============================================================
-
-    def train_episode(
-        self,
-        transitions: List[dict]
-    ) -> Dict[str, float]:
-        """
-        Train the agent using a list of recorded transitions.
-
-        Example:
-
-            transitions = [
-                {
-                    "state": "HIGH",
-                    "action": "MONITOR",
-                    "reward": 3,
-                    "next_state": "HIGH"
-                },
-                {
-                    "state": "HIGH",
-                    "action": "ROTATE_KEY",
-                    "reward": 5,
-                    "next_state": "MEDIUM"
-                }
-            ]
-
-        Returns training statistics.
-        """
-
+    def train_episode(self, transitions: List[dict]) -> Dict[str, float]:
         total_reward = 0.0
 
         for transition in transitions:
+            state = transition.get("state", "HIGH")
+            action = transition.get("action", "MONITOR")
+            reward = transition.get("reward", 0)
+            next_state = transition.get("next_state", state)
+            done = bool(transition.get("done", False))
 
-            state = transition.get(
-                "state",
-                "HIGH"
-            )
-
-            action = transition.get(
-                "action",
-                "MONITOR"
-            )
-
-            reward = transition.get(
-                "reward",
-                0
-            )
-
-            next_state = transition.get(
-                "next_state",
-                state
-            )
-
-            done = bool(
-                transition.get(
-                    "done",
-                    False
-                )
-            )
-
-            self.update(
-                state,
-                action,
-                reward,
-                next_state,
-                done
-            )
+            self.update(state, action, reward, next_state, done)
 
             try:
-                total_reward += float(
-                    reward
-                )
-
-            except (
-                TypeError,
-                ValueError
-            ):
+                total_reward += float(reward)
+            except (TypeError, ValueError):
                 pass
 
-        # --------------------------------------------------------
-        # Reduce exploration after episode
-        # --------------------------------------------------------
-
+        self.episodes += 1
         self.decay_exploration()
 
         return {
-            "steps": len(
-                transitions
-            ),
-
-            "total_reward":
-                round(
-                    total_reward,
-                    3
-                ),
-
-            "exploration_rate":
-                round(
-                    self.exploration_rate,
-                    5
-                )
+            "steps": len(transitions),
+            "total_reward": round(total_reward, 3),
+            "exploration_rate": round(self.exploration_rate, 5),
         }
 
-    # ============================================================
-    # EXPLORATION DECAY
-    # ============================================================
-
-    def decay_exploration(
-        self
-    ):
-        """
-        Reduce exploration after a training iteration.
-        """
-
+    def decay_exploration(self):
         self.exploration_rate = max(
             self.minimum_exploration,
-            self.exploration_rate
-            *
-            self.exploration_decay
+            self.exploration_rate * self.exploration_decay,
         )
 
-    # ============================================================
-    # GET Q-TABLE
-    # ============================================================
-
-    def get_q_table(
-        self
-    ) -> Dict[str, Dict[str, float]]:
-        """
-        Return a copy of the current Q-table.
-        """
-
+    def get_q_table(self) -> Dict[str, Dict[str, float]]:
         return {
-            state: dict(
-                actions
-            )
-            for state, actions
-            in self.q_table.items()
+            state: dict(actions)
+            for state, actions in self.q_table.items()
         }
 
-    # ============================================================
-    # BEST POLICY
-    # ============================================================
+    def get_q_values(self, state: str) -> Dict[str, float]:
+        state = self._normalize_state(state)
+        self._ensure_state(state)
+        return dict(self.q_table[state])
 
     def get_policy(
         self
     ) -> Dict[str, str]:
-        """
-        Return the current best action for every state.
-        """
 
         policy = {}
 
-        for state in self.STATES:
+        for state in self.q_table:
 
             policy[state] = (
                 self.choose_action(
@@ -546,258 +223,236 @@ class AdaptivePolicyAgent:
 
         return policy
 
-    # ============================================================
-    # SET Q-VALUE
-    # ============================================================
+    def confidence(self, state: str) -> float:
+        """
+        Relative confidence based on the separation between the best
+        and second-best Q-values. This is not a calibrated probability.
+        """
+        values = sorted(
+            self.get_q_values(state).values(),
+            reverse=True,
+        )
 
-    def set_q_value(
+        if not values:
+            return 0.0
+
+        if len(values) == 1:
+            return 1.0
+
+        best = values[0]
+        second = values[1]
+        spread = abs(best) + abs(second) + 1e-9
+
+        return round(max(0.0, min(1.0, (best - second) / spread + 0.5)), 3)
+
+    def set_q_value(self, state: str, action: str, value: float):
+        state = self._ensure_state(
+    state
+)
+        action = self._normalize_action(action)
+        self._ensure_state(state)
+        self.q_table[state][action] = float(value)
+
+    def reset(self):
+        self.q_table = {
+            state: {action: 0.0 for action in self.ACTIONS}
+            for state in self.STATES
+        }
+        self.training_steps = 0
+        self.episodes = 0
+
+    def safe_action(
+        self,
+        trust_score: float,
+        selected_action: Optional[str],
+    ) -> str:
+        """
+        Deterministic security guardrail around the learned policy.
+        """
+
+        state = self.state_from_trust(trust_score)
+        action = self._normalize_action(selected_action)
+
+        if state == "VERY_LOW":
+            return "TERMINATE_SESSION"
+
+        if state == "LOW" and action in {"NORMAL", "MONITOR"}:
+            return "HYBRID_PQC"
+
+        if state == "MEDIUM" and action == "NORMAL":
+            return "MONITOR"
+
+        return action
+
+    def export_q_table(self) -> dict:
+        return {
+            "version": 2,
+            "algorithm": "tabular_q_learning",
+            "learning_rate": self.learning_rate,
+            "discount_factor": self.discount_factor,
+            "exploration_rate": self.exploration_rate,
+            "minimum_exploration": self.minimum_exploration,
+            "training_steps": self.training_steps,
+            "episodes": self.episodes,
+            "q_table": self.get_q_table(),
+        }
+
+    def save(self, path: str):
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(self.export_q_table(), handle, indent=2)
+
+    def load(self, path: str):
+        with open(path, "r", encoding="utf-8") as handle:
+            payload = json.load(handle)
+
+        table = payload.get("q_table", {})
+        if not isinstance(table, dict):
+            raise ValueError("Invalid EvoCrypt policy file")
+
+        self.q_table = {
+            str(state): {
+                self._normalize_action(action): float(value)
+                for action, value in values.items()
+                if self._normalize_action(action) in self.ACTIONS
+            }
+            for state, values in table.items()
+        }
+
+        for state in self.STATES:
+            self._ensure_state(state)
+
+        self.training_steps = int(payload.get("training_steps", 0))
+        self.episodes = int(payload.get("episodes", 0))
+    def _normalize_state(
         self,
         state: str,
-        action: str,
-        value: float
-    ):
+    ) -> str:
         """
-        Manually set a Q-value.
+        Normalize EvoCrypt RL states.
 
-        Useful for experiments and initializing a policy.
+        Legacy trust states use uppercase names.
+
+        Structured v3 states use lowercase canonical
+        representation so they remain compatible with
+        the trained policy file.
+        """
+
+        if not isinstance(state, str):
+            return "HIGH"
+
+        state = state.strip()
+
+        # --------------------------------------------------------
+        # Structured states
+        # --------------------------------------------------------
+
+        if state.lower().startswith(("v2|", "v3|")):
+            return state.lower()
+
+        # --------------------------------------------------------
+        # Legacy states
+        # --------------------------------------------------------
+
+        state = state.upper()
+
+        aliases = {
+            "VERY LOW": "VERY_LOW",
+            "CRITICAL": "VERY_LOW",
+            "HIGH_RISK": "LOW",
+            "MEDIUM_RISK": "MEDIUM",
+            "LOW_RISK": "HIGH",
+        }
+
+        state = aliases.get(
+            state,
+            state,
+        )
+
+        if state in self.STATES:
+            return state
+
+        return "HIGH"
+
+    def _normalize_action(self, action: Optional[str]) -> str:
+        if not isinstance(action, str):
+            return "MONITOR"
+
+        action = action.upper().strip()
+
+        aliases = {
+            "ROTATE": "ROTATE_KEY",
+            "ROTATE-KEY": "ROTATE_KEY",
+            "REAUTH": "REAUTHENTICATE",
+            "PQC": "HYBRID_PQC",
+            "HYBRID": "HYBRID_PQC",
+            "TERMINATE": "TERMINATE_SESSION",
+        }
+
+        action = aliases.get(action, action)
+
+        if action not in self.ACTIONS:
+            return "MONITOR"
+
+        return action
+    def _ensure_state(
+        self,
+        state: str
+    ) -> str:
+        """
+        Ensure that a state exists in the Q-table.
+
+        This keeps the agent backward compatible with the
+        original four trust states while supporting the
+        structured EvoCrypt state space.
         """
 
         state = self._normalize_state(
             state
         )
 
-        action = self._normalize_action(
-            action
-        )
-
-        self.q_table[
-            state
-        ][
-            action
-        ] = float(
-            value
-        )
-
-    # ============================================================
-    # RESET
-    # ============================================================
-
-    def reset(
-        self
-    ):
-        """
-        Reset the Q-table and training statistics.
-        """
-
-        self.q_table = {
-            state: {
+        if state not in self.q_table:
+            self.q_table[state] = {
                 action: 0.0
                 for action in self.ACTIONS
             }
-            for state in self.STATES
-        }
 
-        self.training_steps = 0
-
-    # ============================================================
-    # ACTION SAFETY POLICY
-    # ============================================================
-
-    def safe_action(
+        return state
+    def has_state(
         self,
-        trust_score: float,
-        selected_action: Optional[str]
-    ) -> str:
+        state: str,
+    ) -> bool:
         """
-        Apply mandatory safety boundaries around the learned policy.
-
-        RL should not be allowed to make an obviously unsafe
-        decision simply because of a poorly trained Q-table.
-
-        Rules:
-
-            Very low trust:
-                TERMINATE_SESSION
-
-            Low trust:
-                at least HYBRID_PQC
-
-            Medium trust:
-                at least MONITOR
-
-            High trust:
-                learned policy may be used
+        Return True when the policy has learned the supplied state.
         """
 
-        state = self.state_from_trust(
-            trust_score
-        )
-
-        action = self._normalize_action(
-            selected_action
-        )
-
-        # --------------------------------------------------------
-        # Critical trust
-        # --------------------------------------------------------
-
-        if state == "VERY_LOW":
-
-            return "TERMINATE_SESSION"
-
-        # --------------------------------------------------------
-        # Low trust
-        # --------------------------------------------------------
-
-        if state == "LOW":
-
-            if action in {
-                "NORMAL",
-                "MONITOR"
-            }:
-                return "HYBRID_PQC"
-
-        # --------------------------------------------------------
-        # Medium trust
-        # --------------------------------------------------------
-
-        if state == "MEDIUM":
-
-            if action == "NORMAL":
-
-                return "MONITOR"
-
-        # --------------------------------------------------------
-        # High trust
-        # --------------------------------------------------------
-
-        return action
-
-    # ============================================================
-    # SERIALIZATION
-    # ============================================================
-
-    def export_q_table(
-        self
-    ) -> dict:
-        """
-        Return a serializable representation of the agent.
-
-        This can later be stored as JSON.
-        """
-
-        return {
-            "learning_rate":
-                self.learning_rate,
-
-            "discount_factor":
-                self.discount_factor,
-
-            "exploration_rate":
-                self.exploration_rate,
-
-            "exploration_decay":
-                self.exploration_decay,
-
-            "minimum_exploration":
-                self.minimum_exploration,
-
-            "training_steps":
-                self.training_steps,
-
-            "q_table":
-                self.get_q_table()
-        }
-
-    # ============================================================
-    # INTERNAL NORMALIZATION
-    # ============================================================
-
-    def _normalize_state(
-        self,
-        state: str
-    ) -> str:
-
-        if not isinstance(
-            state,
-            str
-        ):
-            return "HIGH"
-
-        state = state.upper().strip()
-
-        aliases = {
-            "VERY LOW":
-                "VERY_LOW",
-
-            "CRITICAL":
-                "VERY_LOW",
-
-            "HIGH_RISK":
-                "LOW",
-
-            "MEDIUM_RISK":
-                "MEDIUM",
-
-            "LOW_RISK":
-                "HIGH"
-        }
-
-        state = aliases.get(
-            state,
+        normalized = self._normalize_state(
             state
         )
 
-        if state not in self.STATES:
-
-            return "HIGH"
-
-        return state
-
-    # ============================================================
-    # ACTION NORMALIZATION
-    # ============================================================
-
-    def _normalize_action(
+        return normalized in self.q_table
+    def get_q_values(
         self,
-        action: Optional[str]
-    ) -> str:
+        state: str,
+    ) -> Dict[str, float]:
+        """
+        Return learned Q-values for a state.
 
-        if not isinstance(
-            action,
-            str
-        ):
-            return "MONITOR"
+        Unknown states return zero-valued actions without
+        mutating the Q-table.
+        """
 
-        action = action.upper().strip()
-
-        aliases = {
-            "ROTATE":
-                "ROTATE_KEY",
-
-            "ROTATE-KEY":
-                "ROTATE_KEY",
-
-            "REAUTH":
-                "REAUTHENTICATE",
-
-            "PQC":
-                "HYBRID_PQC",
-
-            "HYBRID":
-                "HYBRID_PQC",
-
-            "TERMINATE":
-                "TERMINATE_SESSION"
-        }
-
-        action = aliases.get(
-            action,
-            action
+        normalized = self._normalize_state(
+            state
         )
 
-        if action not in self.ACTIONS:
+        values = self.q_table.get(
+            normalized
+        )
 
-            return "MONITOR"
+        if values is None:
+            return {
+                action: 0.0
+                for action in self.ACTIONS
+            }
 
-        return action
+        return dict(values)
