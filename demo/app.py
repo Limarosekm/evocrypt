@@ -52,7 +52,7 @@ app.secret_key = os.environ.get(
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg2://postgres:Maya123#@localhost:5432/evocrypt"
+    "postgresql+psycopg2://postgres:qwerty@localhost:5432/evocrypt"
 )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -1082,6 +1082,71 @@ def update_behavior():
             change,
 
             "Simulated session anomaly"
+        )
+    )
+
+    return jsonify(
+        result
+    )
+
+
+@app.post("/api/simulate-hijack")
+def simulate_hijack():
+    """
+    Demo attack simulation.
+
+    Accepts JSON: { "severity": "low|moderate|high|critical" }
+
+    Maps severity to a trust penalty and reason string, then
+    calls EvoCrypt.apply_external_risk so the live session
+    reacts (score drop, RL action, possible termination) the
+    same way it would to a real detected risk event.
+    """
+
+    if "user" not in session:
+
+        return jsonify(
+            error="unauthenticated"
+        ), 401
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+    severity = (
+        str(
+            data.get(
+                "severity",
+                "moderate"
+            )
+        )
+        .lower()
+        .strip()
+    )
+
+    severity_map = {
+        "low":      (-8,  "Simulated low-risk anomaly"),
+        "moderate": (-25, "Simulated suspicious activity"),
+        "high":     (-45, "Simulated session hijacking"),
+        "critical": (-70, "Simulated full session takeover"),
+    }
+
+    change, reason = severity_map.get(
+        severity,
+        severity_map["moderate"]
+    )
+
+    result = (
+        security.apply_external_risk(
+
+            session["session_id"],
+
+            change,
+
+            reason
         )
     )
 

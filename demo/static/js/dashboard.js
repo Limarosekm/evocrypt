@@ -428,50 +428,44 @@ function updateTrustDisplay(data) {
 // ATTACK SIMULATION
 // ============================================================
 
-async function simulateAnomaly() {
 
-    const response =
-        await fetch(
-            "/api/update-behavior",
-            {
-                method: "POST",
+async function simulateAnomaly(severity = "moderate") {
 
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
+    try {
 
-                body:
-                    JSON.stringify({
-                        change: -25
-                    })
-            }
-        );
+        const response =
+            await fetch(
+                "/api/simulate-hijack",
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ severity: severity })
+                }
+            );
 
+        if (response.status === 401) {
 
-    const data =
-        await response.json();
+            window.location.href = "/";
 
+            return;
+        }
 
-    updateTrustDisplay(
-        data
-    );
+        const data = await response.json();
 
+        updateTrustDisplay(data);
 
-    if (
-        data.active === false
-    ) {
+        if (data.active === false) {
 
-        alert(
-            "EvoCrypt terminated the session."
-        );
+            alert("EvoCrypt terminated the session — possible hijacking detected.");
 
+            window.location.href = "/";
+        }
 
-        window.location.href =
-            "/";
+    } catch (error) {
+
+        console.warn("Simulation request failed:", error);
     }
 }
-
 
 // ============================================================
 // LOGOUT

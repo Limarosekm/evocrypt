@@ -416,16 +416,6 @@
                     </div>
 
 
-                    <!-- ATTACK SIMULATION -->
-
-                    <button
-                        class="simulate-btn"
-                        onclick="simulateAnomaly()"
-                    >
-
-                        Simulate Session Hijacking
-
-                    </button>
                     <!-- =================================================
      RL POLICY DEMONSTRATION
      ================================================= -->
@@ -487,6 +477,42 @@
     </div>
 
 </div>
+
+
+                    <!-- =================================================
+                         ATTACK SIMULATION
+                         ================================================= -->
+
+                    <div class="rl-demo">
+
+                        <div class="decision-title">
+                            ATTACK SIMULATION
+                        </div>
+
+                        <div class="rl-demo-subtitle">
+                            Inject a simulated risk event into the
+                            live EvoCrypt session
+                        </div>
+
+                        <div class="rl-scenarios">
+
+                            <button
+                                class="simulate-btn"
+                                onclick="simulateAnomaly('moderate')"
+                            >
+                                Simulate Suspicious Activity
+                            </button>
+
+                            <button
+                                class="simulate-btn"
+                                onclick="simulateAnomaly('high')"
+                            >
+                                Simulate Full Session Hijacking
+                            </button>
+
+                        </div>
+
+                    </div>
 
 
                 </div>

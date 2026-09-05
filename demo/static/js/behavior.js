@@ -1,4 +1,4 @@
-(() => {
+(function () {
 
     // ============================================================
     // BEHAVIOR VARIABLES
@@ -19,8 +19,7 @@
 
     let lastMouseY = null;
 
-    let lastMouseTime =
-        Date.now();
+    let lastMouseTime = Date.now();
 
 
     let clickCount = 0;
@@ -29,17 +28,12 @@
 
     let idleTime = 0;
 
-    let lastActivity =
-        Date.now();
+    let lastActivity = Date.now();
 
 
     const labels = {
-
-        keystroke:
-            "collecting",
-
-        pointer:
-            "collecting"
+        keystroke: "collecting",
+        pointer: "collecting"
     };
 
 
@@ -53,15 +47,11 @@
 
             keyPressCount++;
 
-            keyDownTimes[
-                event.code
-            ] = performance.now();
+            keyDownTimes[event.code] = performance.now();
 
-            lastActivity =
-                Date.now();
+            lastActivity = Date.now();
 
-            labels.keystroke =
-                "active";
+            labels.keystroke = "active";
         }
     );
 
@@ -70,22 +60,13 @@
         "keyup",
         (event) => {
 
-            const start =
-                keyDownTimes[
-                    event.code
-                ];
-
+            const start = keyDownTimes[event.code];
 
             if (start !== undefined) {
 
-                totalKeyHold +=
-                    performance.now() -
-                    start;
+                totalKeyHold += performance.now() - start;
 
-
-                delete keyDownTimes[
-                    event.code
-                ];
+                delete keyDownTimes[event.code];
             }
         }
     );
@@ -99,67 +80,31 @@
         "mousemove",
         (event) => {
 
-            if (
-                lastMouseX !== null &&
-                lastMouseY !== null
-            ) {
+            if (lastMouseX !== null && lastMouseY !== null) {
 
-                const dx =
-                    event.clientX -
-                    lastMouseX;
+                const dx = event.clientX - lastMouseX;
+                const dy = event.clientY - lastMouseY;
 
-                const dy =
-                    event.clientY -
-                    lastMouseY;
+                const distance = Math.hypot(dx, dy);
 
+                mouseDistance += distance;
 
-                const distance =
-                    Math.hypot(
-                        dx,
-                        dy
-                    );
+                const now = Date.now();
 
-
-                mouseDistance +=
-                    distance;
-
-
-                const now =
-                    Date.now();
-
-
-                const deltaTime =
-                    (
-                        now -
-                        lastMouseTime
-                    ) / 1000;
-
+                const deltaTime = (now - lastMouseTime) / 1000;
 
                 if (deltaTime > 0) {
-
-                    mouseSpeed =
-                        distance /
-                        deltaTime;
+                    mouseSpeed = distance / deltaTime;
                 }
 
+                labels.pointer = "active";
 
-                labels.pointer =
-                    "active";
-
-
-                lastMouseTime =
-                    now;
+                lastMouseTime = now;
             }
 
-
-            lastMouseX =
-                event.clientX;
-
-            lastMouseY =
-                event.clientY;
-
-            lastActivity =
-                Date.now();
+            lastMouseX = event.clientX;
+            lastMouseY = event.clientY;
+            lastActivity = Date.now();
         }
     );
 
@@ -173,9 +118,7 @@
         () => {
 
             clickCount++;
-
-            lastActivity =
-                Date.now();
+            lastActivity = Date.now();
         }
     );
 
@@ -188,13 +131,8 @@
         "scroll",
         () => {
 
-            scrollDistance +=
-                Math.abs(
-                    window.scrollY
-                );
-
-            lastActivity =
-                Date.now();
+            scrollDistance += Math.abs(window.scrollY);
+            lastActivity = Date.now();
         }
     );
 
@@ -205,13 +143,7 @@
 
     setInterval(
         () => {
-
-            idleTime =
-                (
-                    Date.now() -
-                    lastActivity
-                ) / 1000;
-
+            idleTime = (Date.now() - lastActivity) / 1000;
         },
         1000
     );
@@ -223,42 +155,26 @@
 
     function getBrowser() {
 
-        const userAgent =
-            navigator.userAgent;
+        const userAgent = navigator.userAgent;
 
-
-        if (
-            userAgent.includes("Edg")
-        ) {
-
+        if (userAgent.includes("Edg")) {
             return "Microsoft Edge";
         }
 
-
-        if (
-            userAgent.includes("Chrome")
-        ) {
-
+        if (userAgent.includes("Chrome")) {
             return "Chrome";
         }
 
-
-        if (
-            userAgent.includes("Firefox")
-        ) {
-
+        if (userAgent.includes("Firefox")) {
             return "Firefox";
         }
-
 
         if (
             userAgent.includes("Safari") &&
             !userAgent.includes("Chrome")
         ) {
-
             return "Safari";
         }
-
 
         return "Unknown";
     }
@@ -270,33 +186,19 @@
 
     function getOperatingSystem() {
 
-        const platform =
-            navigator.platform;
+        const platform = navigator.platform;
 
-
-        if (
-            platform.startsWith("Win")
-        ) {
-
+        if (platform.startsWith("Win")) {
             return "Windows";
         }
 
-
-        if (
-            platform.startsWith("Mac")
-        ) {
-
+        if (platform.startsWith("Mac")) {
             return "macOS";
         }
 
-
-        if (
-            platform.startsWith("Linux")
-        ) {
-
+        if (platform.startsWith("Linux")) {
             return "Linux";
         }
-
 
         return "Unknown";
     }
@@ -308,120 +210,69 @@
 
     async function sendBehavior() {
 
-        const averageKeyHold =
-            keyPressCount > 0
-
-                ? totalKeyHold /
-                  keyPressCount
-
-                : 0;
-
-
         const payload = {
-
-            typing_speed:
-                keyPressCount / 5,
-
-            avg_key_hold:
-                averageKeyHold,
-
-            mouse_speed:
-                mouseSpeed,
-
-            mouse_distance:
-                mouseDistance,
-
-            click_count:
-                clickCount,
-
-            scroll_distance:
-                scrollDistance,
-
-            idle_time:
-                idleTime,
-
-            screen_width:
-                screen.width,
-
-            screen_height:
-                screen.height,
-
-            browser:
-                getBrowser(),
-
-            operating_system:
-                getOperatingSystem()
+            mouse_speed: mouseSpeed,
+            mouse_distance: mouseDistance,
+            click_count: clickCount,
+            scroll_distance: scrollDistance,
+            idle_time: idleTime,
+            screen_width: screen.width,
+            screen_height: screen.height,
+            browser: getBrowser(),
+            operating_system: getOperatingSystem()
         };
 
+        // Only send keyboard measurements when actual typing
+        // occurred during this 5-second collection interval.
+        if (keyPressCount > 0) {
+            payload.typing_speed = keyPressCount / 5;
+            payload.avg_key_hold = totalKeyHold / keyPressCount;
+        }
 
         try {
 
-            const response =
-                await fetch(
-                    "/api/behavior",
-                    {
-                        method: "POST",
+            const response = await fetch(
+                "/api/behavior",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                }
+            );
 
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body:
-                            JSON.stringify(
-                                payload
-                            )
-                    }
-                );
-
-
-            if (
-                response.status === 401
-            ) {
-
-                window.location.href =
-                    "/";
-
+            if (response.status === 401) {
+                window.location.href = "/";
                 return;
             }
 
+            const result = await response.json();
 
-            const result =
-                await response.json();
-
-
-            if (
-                result.security &&
-                window.onSecurityUpdate
-            ) {
-
-                window.onSecurityUpdate(
-                    result.security
-                );
+            if (result.security && window.onSecurityUpdate) {
+                window.onSecurityUpdate(result.security);
             }
 
+            // If EvoCrypt terminated the session, immediately
+            // return the user to the login page.
+            if (result.security && result.security.active === false) {
+                alert(
+                    "EvoCrypt terminated the session — possible hijacking detected."
+                );
+                window.location.href = "/";
+                return;
+            }
 
         } catch (error) {
-
-            console.warn(
-                "Behavior delivery failed:",
-                error
-            );
+            console.warn("Behavior delivery failed:", error);
         }
 
-
         // Reset interval measurements
-
         keyPressCount = 0;
-
         totalKeyHold = 0;
-
         mouseDistance = 0;
-
         mouseSpeed = 0;
-
         clickCount = 0;
-
         scrollDistance = 0;
     }
 
@@ -431,11 +282,9 @@
     // ============================================================
 
     window.EvoBehavior = {
-
         get keystrokeLabel() {
             return labels.keystroke;
         },
-
         get pointerLabel() {
             return labels.pointer;
         }
@@ -446,9 +295,6 @@
     // SEND EVERY 5 SECONDS
     // ============================================================
 
-    setInterval(
-        sendBehavior,
-        5000
-    );
+    setInterval(sendBehavior, 5000);
 
 })();

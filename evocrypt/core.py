@@ -240,10 +240,8 @@ class EvoCrypt:
         # STEP 3: RL Policy Selection
         # ---------------------------------------------------------
 
-        action = self.agent.choose_action(
-            state,
-            explore=False
-        )
+        action = self.agent.choose_action(state, explore=False)
+        action = self.agent.safe_action(session.trust_score, action) 
 
         # ---------------------------------------------------------
         # STEP 4: Apply Security Action
@@ -594,3 +592,54 @@ class EvoCrypt:
         return self._sessions[
             session_id
         ]
+def simulate_hijack(self, session_id: str, severity: str = "moderate") -> Dict[str, Any]:
+    """
+    Inject realistic hijacking indicators through the real
+    Trust -> RL -> Security pipeline instead of forcing a score.
+    """
+    session = self._require(session_id)
+
+    if not session.active:
+        return self.get_status(session_id)
+
+    profiles = {
+        "moderate": {
+            "signals": {
+                "typing_speed": 0.2, "avg_key_hold": 480,
+                "mouse_speed": 1900, "mouse_distance": 4000,
+                "click_count": 2, "scroll_distance": 0, "idle_time": 0,
+            },
+            "context": {
+                "device_changed": True, "ip_changed": False,
+                "unusual_time": False,
+            },
+        },
+        "high": {
+            "signals": {
+                "typing_speed": 0.1, "avg_key_hold": 490,
+                "mouse_speed": 2000, "mouse_distance": 16000,
+                "click_count": 0, "scroll_distance": 0, "idle_time": 0,
+                "suspicious": True,
+            },
+            "context": {
+                "device_changed": True, "ip_changed": True,
+                "unusual_time": True,
+            },
+        },
+    }
+
+    profile = profiles.get(severity, profiles["moderate"])
+
+    status = self.record_behavior(
+        session_id,
+        signals=profile["signals"],
+        context=profile["context"],
+    )
+
+    if severity == "high":
+        status = self.apply_external_risk(
+            session_id, -15,
+            "Session token reused from an unrecognized device/network",
+        )
+
+    return status
