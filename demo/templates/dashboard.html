@@ -12,7 +12,7 @@
     >
 
     <title>
-        EvoCrypt Security Dashboard
+        SecureTrust Bank | Dashboard
     </title>
 
     <link
@@ -39,13 +39,13 @@
         <div class="brand-mark">
 
             <div class="brand-glyph">
-                EC
+                ST
             </div>
 
             <div>
 
                 <h1>
-                    EvoCrypt
+                    SecureTrust Bank
                 </h1>
 
             </div>
@@ -53,18 +53,39 @@
         </div>
 
 
-        <div class="nav-item active">
-            ◈ Security Overview
+        <div
+            class="nav-item active"
+            data-page="overview"
+            onclick="showPage('overview', this)"
+        >
+            ◈ Overview
         </div>
 
 
-        <div class="nav-item">
-            ▣ Account
+        <div
+            class="nav-item"
+            data-page="cards"
+            onclick="showPage('cards', this)"
+        >
+            ▤ Cards
         </div>
 
 
-        <div class="nav-item">
-            ↗ Transfers
+        <div
+            class="nav-item"
+            data-page="statements"
+            onclick="showPage('statements', this)"
+        >
+            ▦ Statements
+        </div>
+
+
+        <div
+            class="nav-item"
+            data-page="security"
+            onclick="showPage('security', this)"
+        >
+            ◆ Security Center
         </div>
 
 
@@ -95,13 +116,13 @@
 
             <div>
 
-                <h2>
-                    Adaptive Security Dashboard
+                <h2 id="page-title">
+                    Account Overview
                 </h2>
 
                 <div class="welcome">
 
-                    Continuous protection for
+                    Welcome back,
                     {{ user }}
 
                 </div>
@@ -110,23 +131,33 @@
 
 
             <div
-                class="welcome"
-                id="decision-time"
+                class="topbar-trust-badge"
+                id="topbar-trust-badge"
+                onclick="showPage('security', document.querySelector('[data-page=security]'))"
+                title="Live session trust score — click for details"
             >
-                LIVE
+
+                <span class="topbar-trust-dot" id="topbar-trust-dot"></span>
+
+                <span id="topbar-trust-value">88</span>
+
+                <span class="topbar-trust-label">TRUST</span>
+
             </div>
 
         </header>
 
 
-        <div class="grid">
+        <!-- =========================================================
+             PAGE: OVERVIEW
+             ========================================================= -->
 
+        <div
+            class="page active"
+            id="page-overview"
+        >
 
-            <!-- =================================================
-                 LEFT COLUMN
-                 ================================================= -->
-
-            <section>
+            <div class="grid-single">
 
 
                 <!-- ACCOUNT -->
@@ -177,7 +208,7 @@
                 <div class="card">
 
                     <h3>
-                        Demo Transfer
+                        Transfer Money
                     </h3>
 
 
@@ -217,297 +248,198 @@
                 </div>
 
 
-            </section>
+            </div>
 
+        </div>
 
-            <!-- =================================================
-                 RIGHT COLUMN
-                 ================================================= -->
 
-            <aside>
+        <!-- =========================================================
+             PAGE: CARDS
+             ========================================================= -->
 
+        <div
+            class="page"
+            id="page-cards"
+        >
 
-                <div class="card">
+            <div class="card">
 
+                <h3>
+                    Your Cards
+                </h3>
 
-                    <h3>
-                        Continuous Trust
-                    </h3>
+                <div
+                    class="cards-grid"
+                    id="cards-grid"
+                >
+                    Loading...
+                </div>
 
+            </div>
 
-                    <!-- TRUST SCORE -->
+        </div>
 
-                    <div
-                        id="trust-score"
-                        class="trust-score-value high"
-                    >
-                        88
-                    </div>
 
+        <!-- =========================================================
+             PAGE: STATEMENTS
+             ========================================================= -->
 
-                    <div
-                        id="trust-status"
-                        class="trust-status-label"
-                    >
-                        Risk level: LOW
-                    </div>
+        <div
+            class="page"
+            id="page-statements"
+        >
 
+            <div class="card">
 
-                    <!-- SECURITY METRICS -->
+                <h3>
+                    Statements
+                </h3>
 
-                    <div class="security-metrics">
+                <div
+                    id="statements-list"
+                >
+                    Loading...
+                </div>
 
+            </div>
 
-                        <div>
+        </div>
 
-                            <span>
-                                RL action
-                            </span>
 
-                            <strong id="rl-action">
-                                MONITOR
-                            </strong>
+        <!-- =========================================================
+             PAGE: SECURITY CENTER
+             ========================================================= -->
 
-                        </div>
+        <div
+            class="page"
+            id="page-security"
+        >
 
+            <div class="security-intro">
 
-                        <div>
+                This account is protected by an adaptive,
+                behavior-aware security engine that scores every
+                session in real time and can automatically respond
+                to risk.
 
-                            <span>
-                                Crypto mode
-                            </span>
+            </div>
 
-                            <strong id="crypto-mode">
-                                AES-256-GCM
-                            </strong>
 
-                        </div>
+            <div class="grid">
 
 
-                        <div>
+                <!-- LEFT: RL + ATTACK SIM -->
 
-                            <span>
-                                Key version
-                            </span>
-
-                            <strong id="key-version">
-                                1
-                            </strong>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Rotations
-                            </span>
-
-                            <strong id="key-rotations">
-                                0
-                            </strong>
-
-                        </div>
-
-
-                    </div>
-
-
-                    <!-- TRUST GRAPH -->
-
-                    <div class="pulse-wrap">
-
-                        <svg
-                            class="pulse-svg"
-                            width="100%"
-                            height="60"
-                            viewBox="0 0 260 60"
-                            preserveAspectRatio="none"
-                        >
-
-                            <path
-                                id="pulse-path"
-                                class="pulse-line"
-                                d=""
-                            ></path>
-
-                        </svg>
-
-                    </div>
-
-
-                    <!-- BEHAVIOR SIGNALS -->
-
-                    <div class="signal-list">
-
-
-                        <div>
-
-                            <span>
-                                Keystroke
-                            </span>
-
-                            <span
-                                class="val"
-                                id="sig-keystroke"
-                            >
-                                collecting
-                            </span>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Pointer
-                            </span>
-
-                            <span
-                                class="val"
-                                id="sig-pointer"
-                            >
-                                collecting
-                            </span>
-
-                        </div>
-
-
-                        <div>
-
-                            <span>
-                                Session age
-                            </span>
-
-                            <span
-                                class="val"
-                                id="sig-session"
-                            >
-                                0:00
-                            </span>
-
-                        </div>
-
-
-                    </div>
-
-
-                    <!-- EXPLANATION -->
-
-                    <div class="decision-box">
-
-
-                        <div class="decision-title">
-
-                            Why did EvoCrypt act?
-
-                        </div>
-
-
-                        <ul id="security-reasons">
-
-                            <li>
-                                Behavior baseline initialized
-                            </li>
-
-                        </ul>
-
-
-                    </div>
+                <section>
 
 
                     <!-- =================================================
-     RL POLICY DEMONSTRATION
-     ================================================= -->
+                         RL POLICY DEMONSTRATION
+                         ================================================= -->
 
-<div class="rl-demo">
+                    <div class="card rl-demo">
 
-    <div class="decision-title">
-        RL POLICY DEMONSTRATION
-    </div>
+                        <h3>
+                            Adaptive Policy Demonstration
+                        </h3>
 
-    <div class="rl-demo-subtitle">
-        Test the trained adaptive security policy
-    </div>
-
-
-    <div class="rl-scenarios">
-
-        <button
-            onclick="runRLDemo('normal')"
-        >
-            Normal
-        </button>
-
-        <button
-            onclick="runRLDemo('behavioral_anomaly')"
-        >
-            Behavioral Anomaly
-        </button>
-
-        <button
-            onclick="runRLDemo('device_takeover')"
-        >
-            Device Takeover
-        </button>
-
-        <button
-            onclick="runRLDemo('high_value_transaction')"
-        >
-            High-Value Transaction
-        </button>
-
-        <button
-            onclick="runRLDemo('combined_attack')"
-        >
-            Combined Attack
-        </button>
-
-    </div>
+                        <div class="rl-demo-subtitle">
+                            Test the trained adaptive security policy
+                            against sample scenarios
+                        </div>
 
 
-    <div
-        id="rl-demo-result"
-        class="rl-demo-result"
-    >
+                        <div class="rl-scenarios">
 
-        Select a scenario to test the
-        trained RL policy.
+                            <button
+                                onclick="runRLDemo('normal')"
+                            >
+                                Normal
+                            </button>
 
-    </div>
+                            <button
+                                onclick="runRLDemo('behavioral_anomaly')"
+                            >
+                                Behavioral Anomaly
+                            </button>
 
-</div>
+                            <button
+                                onclick="runRLDemo('device_takeover')"
+                            >
+                                Device Takeover
+                            </button>
+
+                            <button
+                                onclick="runRLDemo('high_value_transaction')"
+                            >
+                                High-Value Transaction
+                            </button>
+
+                            <button
+                                onclick="runRLDemo('combined_attack')"
+                            >
+                                Combined Attack
+                            </button>
+
+                        </div>
+
+
+                        <div
+                            id="rl-demo-result"
+                            class="rl-demo-result"
+                        >
+
+                            Select a scenario to test the
+                            trained policy.
+
+                        </div>
+
+                    </div>
 
 
                     <!-- =================================================
                          ATTACK SIMULATION
                          ================================================= -->
 
-                    <div class="rl-demo">
+                    <div class="card rl-demo">
 
-                        <div class="decision-title">
-                            ATTACK SIMULATION
-                        </div>
+                        <h3>
+                            Attack Simulation
+                        </h3>
 
                         <div class="rl-demo-subtitle">
-                            Inject a simulated risk event into the
-                            live EvoCrypt session
+                            Inject a simulated risk event into this
+                            live session
                         </div>
 
                         <div class="rl-scenarios">
 
                             <button
                                 class="simulate-btn"
+                                onclick="simulateAnomaly('low')"
+                            >
+                                Low-Risk Anomaly
+                            </button>
+
+                            <button
+                                class="simulate-btn"
                                 onclick="simulateAnomaly('moderate')"
                             >
-                                Simulate Suspicious Activity
+                                Suspicious Activity
                             </button>
 
                             <button
                                 class="simulate-btn"
                                 onclick="simulateAnomaly('high')"
                             >
-                                Simulate Full Session Hijacking
+                                Session Hijacking
+                            </button>
+
+                            <button
+                                class="simulate-btn"
+                                onclick="simulateAnomaly('critical')"
+                            >
+                                Full Takeover
                             </button>
 
                         </div>
@@ -515,11 +447,217 @@
                     </div>
 
 
-                </div>
+                </section>
 
 
-            </aside>
+                <!-- RIGHT: LIVE TRUST -->
 
+                <aside>
+
+
+                    <div class="card">
+
+
+                        <h3>
+                            Continuous Trust
+                        </h3>
+
+
+                        <!-- TRUST SCORE -->
+
+                        <div
+                            id="trust-score"
+                            class="trust-score-value high"
+                        >
+                            88
+                        </div>
+
+
+                        <div
+                            id="trust-status"
+                            class="trust-status-label"
+                        >
+                            Risk level: LOW
+                        </div>
+
+
+                        <!-- SECURITY METRICS -->
+
+                        <div class="security-metrics">
+
+
+                            <div>
+
+                                <span>
+                                    Policy action
+                                </span>
+
+                                <strong id="rl-action">
+                                    MONITOR
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Encryption
+                                </span>
+
+                                <strong id="crypto-mode">
+                                    AES-256-GCM
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Key version
+                                </span>
+
+                                <strong id="key-version">
+                                    1
+                                </strong>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Rotations
+                                </span>
+
+                                <strong id="key-rotations">
+                                    0
+                                </strong>
+
+                            </div>
+
+
+                        </div>
+
+
+                        <!-- TRUST GRAPH -->
+
+                        <div class="pulse-wrap">
+
+                            <svg
+                                class="pulse-svg"
+                                width="100%"
+                                height="60"
+                                viewBox="0 0 260 60"
+                                preserveAspectRatio="none"
+                            >
+
+                                <path
+                                    id="pulse-path"
+                                    class="pulse-line"
+                                    d=""
+                                ></path>
+
+                            </svg>
+
+                        </div>
+
+
+                        <!-- BEHAVIOR SIGNALS -->
+
+                        <div class="signal-list">
+
+
+                            <div>
+
+                                <span>
+                                    Keystroke
+                                </span>
+
+                                <span
+                                    class="val"
+                                    id="sig-keystroke"
+                                >
+                                    collecting
+                                </span>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Pointer
+                                </span>
+
+                                <span
+                                    class="val"
+                                    id="sig-pointer"
+                                >
+                                    collecting
+                                </span>
+
+                            </div>
+
+
+                            <div>
+
+                                <span>
+                                    Session age
+                                </span>
+
+                                <span
+                                    class="val"
+                                    id="sig-session"
+                                >
+                                    0:00
+                                </span>
+
+                            </div>
+
+
+                        </div>
+
+
+                        <!-- EXPLANATION -->
+
+                        <div class="decision-box">
+
+
+                            <div class="decision-title">
+
+                                Why this decision?
+
+                                <span
+                                    class="decision-time"
+                                    id="decision-time"
+                                >
+                                    LIVE
+                                </span>
+
+                            </div>
+
+
+                            <ul id="security-reasons">
+
+                                <li>
+                                    Behavior baseline initialized
+                                </li>
+
+                            </ul>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                </aside>
+
+
+            </div>
 
         </div>
 

@@ -253,11 +253,11 @@
                 window.onSecurityUpdate(result.security);
             }
 
-            // If EvoCrypt terminated the session, immediately
-            // return the user to the login page.
+            // If the session's protection engine terminated the
+            // session, immediately return the user to sign in.
             if (result.security && result.security.active === false) {
                 alert(
-                    "EvoCrypt terminated the session — possible hijacking detected."
+                    "Your session was ended — possible suspicious activity detected."
                 );
                 window.location.href = "/";
                 return;
@@ -281,7 +281,7 @@
     // PUBLIC BEHAVIOR STATE
     // ============================================================
 
-    window.EvoBehavior = {
+    window.SessionBehavior = {
         get keystrokeLabel() {
             return labels.keystroke;
         },
