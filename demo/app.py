@@ -398,6 +398,50 @@ def new_account_state():
                     now - timedelta(days=5)
                 ).strftime("%b %d")
             }
+        ],
+
+        "cards": [
+
+            {
+                "id": "card-1",
+                "nickname": "Everyday Debit",
+                "network": "Visa",
+                "last4": "4471",
+                "expiry": "09/29",
+                "status": "active"
+            },
+
+            {
+                "id": "card-2",
+                "nickname": "Rewards Credit",
+                "network": "Mastercard",
+                "last4": "8830",
+                "expiry": "02/28",
+                "status": "active"
+            }
+
+        ],
+
+        "statements": [
+
+            {
+                "id": "stmt-1",
+                "label": (now - timedelta(days=5)).strftime("%B %Y"),
+                "period_end": (now - timedelta(days=5)).strftime("%b %d, %Y")
+            },
+
+            {
+                "id": "stmt-2",
+                "label": (now - timedelta(days=35)).strftime("%B %Y"),
+                "period_end": (now - timedelta(days=35)).strftime("%b %d, %Y")
+            },
+
+            {
+                "id": "stmt-3",
+                "label": (now - timedelta(days=65)).strftime("%B %Y"),
+                "period_end": (now - timedelta(days=65)).strftime("%b %d, %Y")
+            }
+
         ]
     }
 
@@ -1016,6 +1060,65 @@ def transfer():
         account=account,
 
         security=result
+    )
+
+
+# ============================================================
+# CARD CONTROLS
+# ============================================================
+
+@app.post("/api/cards/toggle")
+def toggle_card():
+
+    if "user" not in session:
+
+        return jsonify(
+            error="unauthenticated"
+        ), 401
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+    card_id = (
+        data.get("card_id")
+        or ""
+    )
+
+    account = session[
+        "account"
+    ]
+
+    card = next(
+        (
+            item
+            for item in account.get("cards", [])
+            if item["id"] == card_id
+        ),
+        None
+    )
+
+    if card is None:
+
+        return jsonify(
+            success=False,
+            message="Card not found."
+        ), 404
+
+    card["status"] = (
+        "frozen"
+        if card["status"] == "active"
+        else "active"
+    )
+
+    session["account"] = account
+
+    return jsonify(
+        success=True,
+        account=account
     )
 
 

@@ -28,7 +28,7 @@ function setAuthMode(mode) {
     if (mode === "signup") {
 
         title.textContent =
-            "Create your Account";
+            "Open your account";
 
         submitButton.textContent =
             "Register";
@@ -45,7 +45,7 @@ function setAuthMode(mode) {
     } else {
 
         title.textContent =
-            "Sign in to EvoCrypt";
+            "Sign in to your account";
 
         submitButton.textContent =
             "Sign In";
@@ -57,7 +57,7 @@ function setAuthMode(mode) {
             'New here? ' +
             '<a href="#" ' +
             'onclick="setAuthMode(\'signup\'); return false;">' +
-            'Create an account</a>';
+            'Open an account</a>';
     }
 }
 
@@ -215,7 +215,7 @@ async function handleAuthSubmit(event) {
 
         showError(
             "Unable to connect to " +
-            "the EvoCrypt demo server."
+            "the SecureTrust Bank server."
         );
 
 

@@ -6,6 +6,10 @@ let currentTrustScore =
     88;
 
 
+let latestAccount =
+    null;
+
+
 // ============================================================
 // MONEY FORMATTER
 // ============================================================
@@ -20,6 +24,70 @@ function money(value) {
                 maximumFractionDigits: 2
             }
         );
+}
+
+
+// ============================================================
+// PAGE / TAB NAVIGATION
+// ============================================================
+
+const pageTitles = {
+    overview: "Account Overview",
+    cards: "Cards",
+    statements: "Statements",
+    security: "Security Center"
+};
+
+
+function showPage(pageName, navElement) {
+
+    document
+        .querySelectorAll(".page")
+        .forEach(
+            page => page.classList.remove("active")
+        );
+
+    document
+        .querySelectorAll(".nav-item")
+        .forEach(
+            item => item.classList.remove("active")
+        );
+
+
+    const target =
+        document.getElementById(
+            "page-" + pageName
+        );
+
+    if (target) {
+        target.classList.add("active");
+    }
+
+    if (navElement) {
+        navElement.classList.add("active");
+    } else {
+
+        const fallbackNav =
+            document.querySelector(
+                `.nav-item[data-page="${pageName}"]`
+            );
+
+        if (fallbackNav) {
+            fallbackNav.classList.add("active");
+        }
+    }
+
+
+    const title =
+        document.getElementById(
+            "page-title"
+        );
+
+    if (title) {
+        title.textContent =
+            pageTitles[pageName] ||
+            "Dashboard";
+    }
 }
 
 
@@ -61,6 +129,8 @@ async function loadAccount() {
 // ============================================================
 
 function renderAccount(data) {
+
+    latestAccount = data;
 
     document.getElementById(
         "balance-amount"
@@ -144,6 +214,291 @@ function renderAccount(data) {
                 );
             }
         );
+
+
+    renderCards(
+        data.cards || []
+    );
+
+    renderStatements(
+        data.statements || []
+    );
+}
+
+
+// ============================================================
+// RENDER CARDS
+// ============================================================
+
+function renderCards(cards) {
+
+    const grid =
+        document.getElementById(
+            "cards-grid"
+        );
+
+    if (!grid) {
+        return;
+    }
+
+    grid.innerHTML =
+        "";
+
+    if (cards.length === 0) {
+
+        grid.innerHTML =
+            "<div class=\"empty-state\">No cards on this account.</div>";
+
+        return;
+    }
+
+    cards.forEach(
+        card => {
+
+            const tile =
+                document.createElement(
+                    "div"
+                );
+
+            tile.className =
+                "bank-card" +
+                (
+                    card.status === "frozen"
+                        ? " frozen"
+                        : ""
+                );
+
+            tile.innerHTML = `
+
+                <div class="bank-card-top">
+
+                    <span class="bank-card-network">
+                        ${escapeHtml(card.network)}
+                    </span>
+
+                    <span class="bank-card-status">
+                        ${
+                            card.status === "frozen"
+                                ? "FROZEN"
+                                : "ACTIVE"
+                        }
+                    </span>
+
+                </div>
+
+                <div class="bank-card-number">
+                    •••• •••• •••• ${escapeHtml(card.last4)}
+                </div>
+
+                <div class="bank-card-bottom">
+
+                    <div>
+                        <div class="bank-card-label">Card holder</div>
+                        <div class="bank-card-value">${escapeHtml(card.nickname)}</div>
+                    </div>
+
+                    <div>
+                        <div class="bank-card-label">Expires</div>
+                        <div class="bank-card-value">${escapeHtml(card.expiry)}</div>
+                    </div>
+
+                </div>
+
+                <button
+                    class="bank-card-toggle"
+                    onclick="toggleCard('${card.id}')"
+                >
+                    ${
+                        card.status === "frozen"
+                            ? "Unfreeze card"
+                            : "Freeze card"
+                    }
+                </button>
+            `;
+
+            grid.appendChild(
+                tile
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// TOGGLE CARD FREEZE STATE
+// ============================================================
+
+async function toggleCard(cardId) {
+
+    try {
+
+        const response =
+            await fetch(
+                "/api/cards/toggle",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+                            card_id: cardId
+                        })
+                }
+            );
+
+        if (response.status === 401) {
+
+            window.location.href = "/";
+
+            return;
+        }
+
+        const data =
+            await response.json();
+
+        if (data.success) {
+            renderAccount(
+                data.account
+            );
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Card toggle failed:",
+            error
+        );
+    }
+}
+
+
+// ============================================================
+// RENDER STATEMENTS
+// ============================================================
+
+function renderStatements(statements) {
+
+    const list =
+        document.getElementById(
+            "statements-list"
+        );
+
+    if (!list) {
+        return;
+    }
+
+    list.innerHTML =
+        "";
+
+    if (statements.length === 0) {
+
+        list.innerHTML =
+            "<div class=\"empty-state\">No statements available yet.</div>";
+
+        return;
+    }
+
+    statements.forEach(
+        statement => {
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+            row.className =
+                "statement-row";
+
+            row.innerHTML = `
+
+                <div>
+
+                    <div class="statement-label">
+                        ${escapeHtml(statement.label)}
+                    </div>
+
+                    <div class="statement-period">
+                        Period ending ${escapeHtml(statement.period_end)}
+                    </div>
+
+                </div>
+
+                <button
+                    class="statement-download"
+                    onclick="downloadStatement('${statement.id}', '${escapeHtml(statement.label)}')"
+                >
+                    Download PDF
+                </button>
+            `;
+
+            list.appendChild(
+                row
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// DOWNLOAD STATEMENT (DEMO)
+// ============================================================
+
+function downloadStatement(statementId, label) {
+
+    const account =
+        latestAccount ||
+        {};
+
+    const lines = [
+
+        "SecureTrust Bank",
+        "Account Statement — " + label,
+        "Account: " + (account.account_number || ""),
+        "",
+        "This is a demo statement generated for " +
+        "presentation purposes only."
+
+    ];
+
+    const blob =
+        new Blob(
+            [lines.join("\n")],
+            { type: "text/plain" }
+        );
+
+    const url =
+        URL.createObjectURL(
+            blob
+        );
+
+    const link =
+        document.createElement(
+            "a"
+        );
+
+    link.href =
+        url;
+
+    link.download =
+        `securetrust-statement-${statementId}.txt`;
+
+    document.body.appendChild(
+        link
+    );
+
+    link.click();
+
+    document.body.removeChild(
+        link
+    );
+
+    URL.revokeObjectURL(
+        url
+    );
 }
 
 
@@ -327,6 +682,14 @@ function updateTrustDisplay(data) {
         );
 
 
+    const riskTier =
+        currentTrustScore >= 70
+            ? "high"
+            : currentTrustScore >= 40
+                ? "medium"
+                : "low";
+
+
     scoreElement.textContent =
         Math.round(
             currentTrustScore
@@ -335,13 +698,7 @@ function updateTrustDisplay(data) {
 
     scoreElement.className =
         "trust-score-value " +
-        (
-            currentTrustScore >= 70
-                ? "high"
-                : currentTrustScore >= 40
-                    ? "medium"
-                    : "low"
-        );
+        riskTier;
 
 
     document.getElementById(
@@ -421,6 +778,35 @@ function updateTrustDisplay(data) {
         "decision-time"
     ).textContent =
         new Date().toLocaleTimeString();
+
+
+    // Keep the always-visible topbar badge in sync so the
+    // live trust score is visible from any page, not just
+    // the Security Center.
+    const topbarValue =
+        document.getElementById(
+            "topbar-trust-value"
+        );
+
+    const topbarDot =
+        document.getElementById(
+            "topbar-trust-dot"
+        );
+
+    if (topbarValue) {
+
+        topbarValue.textContent =
+            Math.round(
+                currentTrustScore
+            );
+    }
+
+    if (topbarDot) {
+
+        topbarDot.className =
+            "topbar-trust-dot " +
+            riskTier;
+    }
 }
 
 
@@ -456,7 +842,7 @@ async function simulateAnomaly(severity = "moderate") {
 
         if (data.active === false) {
 
-            alert("EvoCrypt terminated the session — possible hijacking detected.");
+            alert("Your session was ended — possible session hijacking detected.");
 
             window.location.href = "/";
         }
@@ -495,20 +881,20 @@ function logout() {
 function updateSignalReadout() {
 
     if (
-        window.EvoBehavior
+        window.SessionBehavior
     ) {
 
         document.getElementById(
             "sig-keystroke"
         ).textContent =
-            window.EvoBehavior
+            window.SessionBehavior
                 .keystrokeLabel;
 
 
         document.getElementById(
             "sig-pointer"
         ).textContent =
-            window.EvoBehavior
+            window.SessionBehavior
                 .pointerLabel;
     }
 
@@ -722,7 +1108,7 @@ async function runRLDemo(scenario) {
         );
 
     resultBox.innerHTML =
-        "Running trained RL policy...";
+        "Running trained policy...";
 
     try {
 
@@ -756,7 +1142,7 @@ async function runRLDemo(scenario) {
                 <div class="rl-error">
                     ${escapeHtml(
                         data.message ||
-                        "RL demonstration failed."
+                        "Policy demonstration failed."
                     )}
                 </div>
                 `;
@@ -834,7 +1220,7 @@ async function runRLDemo(scenario) {
 
 
             <div class="rl-section-label">
-                RL STATE
+                POLICY STATE
             </div>
 
 
@@ -846,7 +1232,7 @@ async function runRLDemo(scenario) {
 
 
             <div class="rl-section-label">
-                RL DECISION
+                POLICY DECISION
             </div>
 
 
@@ -911,7 +1297,7 @@ async function runRLDemo(scenario) {
         resultBox.innerHTML =
             `
             <div class="rl-error">
-                Unable to run RL policy.
+                Unable to run the adaptive policy.
             </div>
             `;
     }

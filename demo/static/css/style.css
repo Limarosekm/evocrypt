@@ -1684,3 +1684,239 @@ button:active {
     color:
         var(--risk-400);
 }
+
+/* ============================================================
+   PAGE TABS (Overview / Cards / Statements / Security Center)
+   ============================================================ */
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+.grid-single {
+    max-width: 720px;
+}
+
+
+/* ============================================================
+   TOPBAR TRUST BADGE
+   ============================================================ */
+
+.topbar-trust-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--panel-800);
+    border: 1px solid var(--line-600);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-300);
+    cursor: pointer;
+    user-select: none;
+}
+
+.topbar-trust-badge:hover {
+    border-color: var(--line-500);
+    background: var(--panel-700);
+}
+
+.topbar-trust-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--teal-300);
+    box-shadow: 0 0 8px var(--teal-300);
+}
+
+.topbar-trust-dot.medium {
+    background: var(--brass-300);
+    box-shadow: 0 0 8px var(--brass-300);
+}
+
+.topbar-trust-dot.low {
+    background: var(--risk-400);
+    box-shadow: 0 0 8px var(--risk-400);
+}
+
+.topbar-trust-label {
+    color: var(--text-500);
+    font-size: 11px;
+    letter-spacing: 0.06em;
+}
+
+
+/* ============================================================
+   SECURITY CENTER INTRO
+   ============================================================ */
+
+.security-intro {
+    color: var(--text-300);
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 760px;
+    margin-bottom: 20px;
+}
+
+.decision-time {
+    float: right;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-500);
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+
+/* ============================================================
+   CARDS PAGE
+   ============================================================ */
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.bank-card {
+    position: relative;
+    border-radius: 14px;
+    padding: 20px;
+    min-height: 170px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background:
+        linear-gradient(
+            135deg,
+            var(--panel-700) 0%,
+            var(--ink-900) 100%
+        );
+    border: 1px solid var(--line-600);
+    color: var(--text-100);
+}
+
+.bank-card.frozen {
+    opacity: 0.55;
+    filter: grayscale(0.6);
+}
+
+.bank-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--font-display);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+}
+
+.bank-card-status {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(45, 212, 191, 0.12);
+    color: var(--teal-300);
+    letter-spacing: 0.06em;
+}
+
+.bank-card.frozen .bank-card-status {
+    background: rgba(242, 84, 91, 0.12);
+    color: var(--risk-400);
+}
+
+.bank-card-number {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    letter-spacing: 0.08em;
+    margin: 18px 0;
+}
+
+.bank-card-bottom {
+    display: flex;
+    justify-content: space-between;
+}
+
+.bank-card-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-500);
+    margin-bottom: 3px;
+}
+
+.bank-card-value {
+    font-size: 13px;
+    color: var(--text-100);
+}
+
+.bank-card-toggle {
+    margin-top: 16px;
+    background: transparent;
+    border: 1px solid var(--line-500);
+    color: var(--text-300);
+    font-size: 12px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.bank-card-toggle:hover {
+    background: var(--panel-700);
+    color: var(--text-100);
+}
+
+
+/* ============================================================
+   STATEMENTS PAGE
+   ============================================================ */
+
+.statement-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-600);
+}
+
+.statement-row:last-child {
+    border-bottom: none;
+}
+
+.statement-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-100);
+}
+
+.statement-period {
+    font-size: 12px;
+    color: var(--text-500);
+    font-family: var(--font-mono);
+    margin-top: 2px;
+}
+
+.statement-download {
+    background: transparent;
+    border: 1px solid var(--line-500);
+    color: var(--teal-300);
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.statement-download:hover {
+    background: rgba(45, 212, 191, 0.08);
+}
+
+.empty-state {
+    color: var(--text-500);
+    font-size: 13px;
+    padding: 12px 0;
+}
