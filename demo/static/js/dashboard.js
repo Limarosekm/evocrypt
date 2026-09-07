@@ -807,6 +807,203 @@ function updateTrustDisplay(data) {
             "topbar-trust-dot " +
             riskTier;
     }
+    
+// ============================================================
+// HOME PAGE — EVOLUTIONARY SECURITY CARD
+// ============================================================
+
+const homeScore =
+    document.getElementById(
+        "home-trust-score"
+    );
+
+const homeRisk =
+    document.getElementById(
+        "home-risk-level"
+    );
+
+const homeAction =
+    document.getElementById(
+        "home-security-action"
+    );
+
+const homeKeyExchange =
+    document.getElementById(
+        "home-key-exchange"
+    );
+
+const homeCipher =
+    document.getElementById(
+        "home-data-cipher"
+    );
+
+const homeKeyVersion =
+    document.getElementById(
+        "home-key-version"
+    );
+
+const homeRotations =
+    document.getElementById(
+        "home-key-rotations"
+    );
+
+const protectionStatus =
+    document.getElementById(
+        "home-protection-status"
+    );
+
+const protectionIcon =
+    document.getElementById(
+        "home-protection-icon"
+    );
+
+const protectionText =
+    document.getElementById(
+        "home-protection-text"
+    );
+
+const protectionDot =
+    document.getElementById(
+        "evolutionary-status-dot"
+    );
+
+
+if (homeScore) {
+
+    homeScore.textContent =
+        Math.round(
+            currentTrustScore
+        );
+
+    homeScore.className =
+        "evolutionary-score " +
+        riskTier;
+}
+
+
+if (homeRisk) {
+
+    const riskLevel =
+        data.risk_level ||
+        "LOW";
+
+    homeRisk.textContent =
+        riskLevel;
+
+    homeRisk.className =
+        "evolutionary-risk-value " +
+        riskTier;
+}
+
+
+if (homeAction) {
+
+    homeAction.textContent =
+        data.action ||
+        "MONITOR";
+}
+
+
+if (homeKeyExchange) {
+
+    homeKeyExchange.textContent =
+        data.key_exchange ||
+        "NONE";
+}
+
+
+if (homeCipher) {
+
+    homeCipher.textContent =
+        data.cipher ||
+        data.crypto_mode ||
+        "AES-256-GCM";
+}
+
+
+if (homeKeyVersion) {
+
+    homeKeyVersion.textContent =
+        data.key_version ??
+        1;
+}
+
+
+if (homeRotations) {
+
+    homeRotations.textContent =
+        data.key_rotation_count ??
+        0;
+}
+
+
+// ============================================================
+// PROTECTION STATUS MESSAGE
+// ============================================================
+
+if (
+    protectionStatus &&
+    protectionIcon &&
+    protectionText
+) {
+
+    protectionStatus.className =
+        "evolutionary-protection";
+
+    protectionIcon.textContent =
+        "✓";
+
+
+    if (
+        data.crypto_mode ===
+        "HYBRID_PQC"
+    ) {
+
+        protectionStatus.classList.add(
+            "upgraded"
+        );
+
+        protectionIcon.textContent =
+            "⚠";
+
+        protectionText.textContent =
+            "Protection upgraded — PQC hybrid active";
+
+    } else if (
+        data.crypto_mode ===
+        "BLOCKED"
+    ) {
+
+        protectionStatus.classList.add(
+            "critical"
+        );
+
+        protectionIcon.textContent =
+            "×";
+
+        protectionText.textContent =
+            "Session protection blocked";
+
+    } else {
+
+        protectionText.textContent =
+            "Standard protection active";
+    }
+}
+
+
+// ============================================================
+// STATUS DOT
+// ============================================================
+
+if (protectionDot) {
+
+    protectionDot.className =
+        "evolutionary-status-dot " +
+        riskTier;
+}
+
+
 }
 
 

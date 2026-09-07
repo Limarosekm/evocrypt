@@ -1,289 +1,79 @@
-from typing import Any, Dict, Optional
+class PQCProviderUnavailable(Exception):
+    pass
 
 
-class PQCNotAvailableError(
-    RuntimeError
-):
+class MLKEMProvider:
     """
-    Raised when a post-quantum provider has not
-    been configured.
-    """
+    ML-KEM provider abstraction.
 
-
-class PQCProvider:
-    """
-    Abstract interface for a post-quantum provider.
-
-    EvoCrypt uses this interface so that the core
-    framework does not depend directly on one PQC
-    library.
-
-    A real provider can later implement:
-
-        ML-KEM
-        ML-DSA
-
-    through this interface.
+    The rest of EvoCrypt does not depend directly on
+    a particular PQC library.
     """
 
-    name = "abstract"
+    def __init__(self):
+        self.available = False
+        self.oqs = None
 
-    def available(self) -> bool:
-        """
-        Return whether the PQC provider is available.
-        """
+        try:
+            import oqs
 
-        return False
+            self.oqs = oqs
+            self.available = True
 
-    def generate_kem_keypair(
-        self
-    ):
-        """
-        Generate an ML-KEM keypair.
+        except ImportError:
+            self.available = False
 
-        Provider implementations must override this.
-        """
-
-        raise PQCNotAvailableError(
-            "No PQC provider is configured."
-        )
-
-    def encapsulate(
-        self,
-        public_key: Any
-    ):
-        """
-        Perform KEM encapsulation.
-        """
-
-        raise PQCNotAvailableError(
-            "No PQC provider is configured."
-        )
-
-    def decapsulate(
-        self,
-        private_key: Any,
-        ciphertext: Any
-    ):
-        """
-        Perform KEM decapsulation.
-        """
-
-        raise PQCNotAvailableError(
-            "No PQC provider is configured."
-        )
-
-    def generate_signature_keypair(
-        self
-    ):
-        """
-        Generate an ML-DSA signing keypair.
-        """
-
-        raise PQCNotAvailableError(
-            "No PQC provider is configured."
-        )
-
-    def sign(
-        self,
-        private_key: Any,
-        message: bytes
-    ):
-        """
-        Generate a post-quantum signature.
-        """
-
-        raise PQCNotAvailableError(
-            "No PQC provider is configured."
-        )
-
-    def verify(
-        self,
-        public_key: Any,
-        message: bytes,
-        signature: Any
-    ) -> bool:
-        """
-        Verify a post-quantum signature.
-        """
-
-        raise PQCNotAvailableError(
-            "No PQC provider is configured."
-        )
-
-
-class HybridPQCProvider:
-    """
-    Adapter for hybrid classical + post-quantum security.
-
-    Concept:
-
-        Classical key exchange
-                +
-        ML-KEM
-                ↓
-        Combined session secret
-
-    The actual PQC implementation is supplied by
-    an external validated provider.
-    """
-
-    def __init__(
-        self,
-        provider: Optional[PQCProvider] = None
-    ):
-        self.provider = (
-            provider
-            or PQCProvider()
-        )
-
-    # ============================================================
-    # AVAILABILITY
-    # ============================================================
-
-    def available(
-        self
-    ) -> bool:
-
-        return self.provider.available()
-
-    # ============================================================
-    # PROVIDER NAME
-    # ============================================================
-
-    @property
-    def name(
-        self
-    ) -> str:
-
-        return self.provider.name
-
-    # ============================================================
-    # REQUIRE PROVIDER
-    # ============================================================
-
-    def _require_provider(
-        self
-    ):
-
-        if not self.available():
-
-            raise PQCNotAvailableError(
-                "A validated PQC provider is not "
-                "configured. Install/configure an "
-                "ML-KEM/ML-DSA provider before "
-                "enabling production PQC."
+    def generate_keypair(self):
+        if not self.available:
+            raise PQCProviderUnavailable(
+                "ML-KEM provider is not installed."
             )
 
-        return self.provider
-
-    # ============================================================
-    # ML-KEM
-    # ============================================================
-
-    def generate_kem_keypair(
-        self
-    ):
-
-        provider = (
-            self._require_provider()
+        kem = self.oqs.KeyEncapsulation(
+            "ML-KEM-768"
         )
 
-        return provider.generate_kem_keypair()
+        public_key = kem.generate_keypair()
 
-    def encapsulate(
-        self,
-        public_key: Any
-    ):
+        secret_key = kem.export_secret_key()
 
-        provider = (
-            self._require_provider()
+        return {
+            "public_key": public_key,
+            "secret_key": secret_key,
+        }
+
+    def encapsulate(self, public_key):
+        if not self.available:
+            raise PQCProviderUnavailable(
+                "ML-KEM provider is not installed."
+            )
+
+        kem = self.oqs.KeyEncapsulation(
+            "ML-KEM-768"
         )
 
-        return provider.encapsulate(
-            public_key
+        ciphertext, shared_secret = (
+            kem.encap_secret(public_key)
         )
+
+        return {
+            "ciphertext": ciphertext,
+            "shared_secret": shared_secret,
+        }
 
     def decapsulate(
         self,
-        private_key: Any,
-        ciphertext: Any
+        secret_key,
+        ciphertext,
     ):
+        if not self.available:
+            raise PQCProviderUnavailable(
+                "ML-KEM provider is not installed."
+            )
 
-        provider = (
-            self._require_provider()
+        kem = self.oqs.KeyEncapsulation(
+            "ML-KEM-768"
         )
 
-        return provider.decapsulate(
-            private_key,
-            ciphertext
-        )
-
-    # ============================================================
-    # ML-DSA
-    # ============================================================
-
-    def generate_signature_keypair(
-        self
-    ):
-
-        provider = (
-            self._require_provider()
-        )
-
-        return provider.generate_signature_keypair()
-
-    def sign(
-        self,
-        private_key: Any,
-        message: bytes
-    ):
-
-        provider = (
-            self._require_provider()
-        )
-
-        return provider.sign(
-            private_key,
-            message
-        )
-
-    def verify(
-        self,
-        public_key: Any,
-        message: bytes,
-        signature: Any
-    ) -> bool:
-
-        provider = (
-            self._require_provider()
-        )
-
-        return provider.verify(
-            public_key,
-            message,
-            signature
-        )
-
-    # ============================================================
-    # STATUS
-    # ============================================================
-
-    def status(
-        self
-    ) -> Dict[str, Any]:
-
-        return {
-
-            "available":
-                self.available(),
-
-            "provider":
-                self.name,
-
-            "kem":
-                "ML-KEM",
-
-            "signature":
-                "ML-DSA"
-        }
+        # Provider-specific implementation may differ.
+        return kem.decap_secret(ciphertext)

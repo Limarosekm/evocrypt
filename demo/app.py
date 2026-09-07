@@ -201,6 +201,9 @@ class BehaviorLog(db.Model):
     operating_system = db.Column(
         db.String(255)
     )
+    ip_address = db.Column(
+    db.String(255)
+    )
 
     created_at = db.Column(
         db.DateTime,
@@ -459,6 +462,7 @@ def start_buffer(username):
         "idle_time": [],
 
         "browser": "",
+        "ip": "",
         "operating_system": "",
 
         "screen_width": 0,
@@ -564,7 +568,8 @@ def save_completed_session(username):
 
         operating_system=buffer[
             "operating_system"
-        ]
+        ],
+        ip_address=buffer.get("ip")
     )
 
     db.session.add(log)
@@ -666,6 +671,8 @@ def save_completed_session(username):
         profile.usual_screen_height = (
             buffer["screen_height"]
         )
+    if buffer.get("ip"):
+        profile.usual_ip = buffer["ip"]
 
     # --------------------------------------------------------
     # 8. Learning status
@@ -730,7 +737,16 @@ def dashboard():
         user=session["user"]
     )
 
+def get_client_ip():
 
+    forwarded = request.headers.get(
+        "X-Forwarded-For"
+    )
+
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+
+    return request.remote_addr or "Unknown"
 # ============================================================
 # REGISTRATION
 # ============================================================
@@ -1196,18 +1212,15 @@ def update_behavior():
 @app.post("/api/simulate-hijack")
 def simulate_hijack():
     """
-    Demo attack simulation.
+    EvoCrypt-PQ adaptive threat simulation.
 
-    Accepts JSON: { "severity": "low|moderate|high|critical" }
-
-    Maps severity to a trust penalty and reason string, then
-    calls EvoCrypt.apply_external_risk so the live session
-    reacts (score drop, RL action, possible termination) the
-    same way it would to a real detected risk event.
+    Stages:
+        suspicious -> MONITOR_ROTATE
+        takeover   -> HYBRID_PQC
+        critical   -> TERMINATE_SESSION
     """
 
     if "user" not in session:
-
         return jsonify(
             error="unauthenticated"
         ), 401
@@ -1230,33 +1243,211 @@ def simulate_hijack():
         .strip()
     )
 
-    severity_map = {
-        "low":      (-8,  "Simulated low-risk anomaly"),
-        "moderate": (-25, "Simulated suspicious activity"),
-        "high":     (-45, "Simulated session hijacking"),
-        "critical": (-70, "Simulated full session takeover"),
-    }
+    session_id = session["session_id"]
 
-    change, reason = severity_map.get(
-        severity,
-        severity_map["moderate"]
+    # --------------------------------------------------------
+    # Get current EvoCrypt state
+    # --------------------------------------------------------
+
+    current = security.get_status(
+        session_id
     )
 
-    result = (
-        security.apply_external_risk(
-
-            session["session_id"],
-
-            change,
-
-            reason
+    current_score = float(
+        current.get(
+            "trust_score",
+            88
         )
     )
+
+    # --------------------------------------------------------
+    # Adaptive simulation targets
+    # --------------------------------------------------------
+    #
+    # Instead of blindly subtracting a fixed value,
+    # move the session into the appropriate security range.
+    #
+
+    if severity == "low":
+
+        target_score = max(
+            70,
+            current_score - 8
+        )
+
+        reason = (
+            "Simulated low-risk anomaly"
+        )
+
+    elif severity in {
+        "moderate",
+        "suspicious"
+    }:
+
+        # Suspicious activity:
+        # 40-69 -> MONITOR_ROTATE
+        target_score = 55
+
+        reason = (
+            "Simulated suspicious activity"
+        )
+
+    elif severity in {
+        "high",
+        "takeover",
+        "device_takeover"
+    }:
+
+        # Device takeover:
+        # 20-39 -> HYBRID_PQC
+        target_score = 28
+
+        reason = (
+            "Simulated device takeover"
+        )
+
+    elif severity == "critical":
+
+        # Critical attack:
+        # below 20 -> terminate session
+        target_score = 10
+
+        reason = (
+            "Simulated full session takeover"
+        )
+
+    else:
+
+        return jsonify(
+            success=False,
+            message=(
+                "Unknown simulation severity."
+            )
+        ), 400
+
+    # --------------------------------------------------------
+    # Calculate the required risk change
+    # --------------------------------------------------------
+
+    change = target_score - current_score
+
+    # --------------------------------------------------------
+    # Apply through EvoCrypt
+    # --------------------------------------------------------
+
+    result = security.apply_external_risk(
+        session_id,
+        change,
+        reason
+    )
+
+    # --------------------------------------------------------
+    # Return adaptive security state
+    # --------------------------------------------------------
 
     return jsonify(
         result
     )
+    """
+    Demo attack simulation.
 
+    Adaptive progression:
+        low       -> monitoring
+        moderate  -> stronger monitoring + key rotation
+        high      -> HYBRID_PQC
+        critical  -> session termination
+
+    The simulation is designed so that a suspicious activity event
+    does NOT immediately log the user out.
+    """
+
+    if "user" not in session:
+        return jsonify(
+            error="unauthenticated"
+        ), 401
+
+    data = (
+        request.get_json(
+            silent=True
+        )
+        or {}
+    )
+
+    severity = (
+        str(
+            data.get(
+                "severity",
+                "moderate"
+            )
+        )
+        .lower()
+        .strip()
+    )
+
+    # --------------------------------------------------------
+    # Adaptive attack simulation
+    # --------------------------------------------------------
+    #
+    # IMPORTANT:
+    #
+    # Suspicious activity should keep the session alive.
+    # Only critical attacks should force termination.
+    #
+    severity_map = {
+
+        # Small anomaly
+        "low": {
+            "change": -8,
+            "reason": "Simulated low-risk anomaly"
+        },
+
+        # Suspicious behavior
+        # Keeps trust in the adaptive monitoring range
+        "moderate": {
+            "change": -15,
+            "reason": "Simulated suspicious activity"
+        },
+
+        # Serious attack
+        # Moves toward HYBRID_PQC
+        "high": {
+            "change": -30,
+            "reason": "Simulated session hijacking"
+        },
+
+        # Critical takeover
+        # Allowed to terminate the session
+        "critical": {
+            "change": -70,
+            "reason": "Simulated full session takeover"
+        }
+    }
+
+    selected = severity_map.get(
+        severity,
+        severity_map["moderate"]
+    )
+
+    change = selected["change"]
+    reason = selected["reason"]
+
+    # --------------------------------------------------------
+    # Apply risk through EvoCrypt
+    # --------------------------------------------------------
+
+    result = security.apply_external_risk(
+        session["session_id"],
+        change,
+        reason
+    )
+
+    # --------------------------------------------------------
+    # Return updated adaptive security state
+    # --------------------------------------------------------
+
+    return jsonify(
+        result
+    )
 
 # ============================================================
 # BEHAVIOR COLLECTION
@@ -1274,6 +1465,7 @@ def behavior():
     username = session[
         "user"
     ]
+    client_ip = get_client_ip()
 
     data = (
         request.get_json(
@@ -1342,6 +1534,7 @@ def behavior():
         "screen_height",
         buffer["screen_height"]
     )
+    buffer["ip"] = client_ip
 
     # Send signals to EvoCrypt
     signals = {

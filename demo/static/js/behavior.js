@@ -203,25 +203,54 @@
         return "Unknown";
     }
 
+    // ============================================================
+// DEVICE INFORMATION
+// ============================================================
 
+function getDeviceInfo() {
+
+    return {
+        browser: getBrowser(),
+
+        operating_system: getOperatingSystem(),
+
+        screen_width: screen.width,
+
+        screen_height: screen.height,
+
+        platform: navigator.platform || "Unknown",
+
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown",
+
+        language: navigator.language || "Unknown"
+    };
+}
     // ============================================================
     // SEND BEHAVIOR TO SERVER
     // ============================================================
 
     async function sendBehavior() {
-
+        const device = getDeviceInfo();
         const payload = {
+            
             mouse_speed: mouseSpeed,
-            mouse_distance: mouseDistance,
-            click_count: clickCount,
-            scroll_distance: scrollDistance,
-            idle_time: idleTime,
-            screen_width: screen.width,
-            screen_height: screen.height,
-            browser: getBrowser(),
-            operating_system: getOperatingSystem()
-        };
+            mouse_speed: mouseSpeed,
+    mouse_distance: mouseDistance,
+    click_count: clickCount,
+    scroll_distance: scrollDistance,
+    idle_time: idleTime,
 
+    screen_width: screen.width,
+    screen_height: screen.height,
+
+    browser: device.browser,
+    operating_system: device.operating_system,
+
+    platform: device.platform,
+    timezone: device.timezone,
+    language: device.language
+        };
+        
         // Only send keyboard measurements when actual typing
         // occurred during this 5-second collection interval.
         if (keyPressCount > 0) {

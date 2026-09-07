@@ -1,3 +1,6 @@
+
+import time
+
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
@@ -6,6 +9,7 @@ from .config import EvoCryptConfig
 from .trust.scorer import TrustScorer
 from .rl.agent import AdaptivePolicyAgent
 from .crypto.key_manager import KeyManager
+from .crypto.engine import AdaptiveCryptoEngine
 from .session.manager import SessionManager
 
 
@@ -59,6 +63,8 @@ class EvoCrypt:
               ↓
         Adaptive Security Action
               ↓
+        Adaptive Crypto Policy
+              ↓
         Key / Crypto Management
               ↓
         Session Protection
@@ -71,18 +77,6 @@ class EvoCrypt:
     ):
         """
         Create a new EvoCrypt security engine.
-
-        Example:
-
-            security = EvoCrypt()
-
-        Or:
-
-            security = EvoCrypt(
-                adaptive=True,
-                pqc_enabled=True,
-                initial_trust=90
-            )
         """
 
         # ---------------------------------------------------------
@@ -110,8 +104,15 @@ class EvoCrypt:
         # Cryptographic Key Manager
         # ---------------------------------------------------------
 
-        self.keys = KeyManager(
-            self.config.key_rotation_seconds
+        self.keys = KeyManager()
+
+        # ---------------------------------------------------------
+        # Adaptive Cryptographic Engine
+        # ---------------------------------------------------------
+
+        self.crypto = AdaptiveCryptoEngine(
+            key_manager=self.keys,
+            pqc_enabled=self.config.pqc_enabled
         )
 
         # ---------------------------------------------------------
@@ -137,14 +138,6 @@ class EvoCrypt:
     ) -> Dict[str, Any]:
         """
         Start a new EvoCrypt-protected session.
-
-        Steps:
-
-        1. Create EvoCrypt session
-        2. Assign initial trust score
-        3. Register session
-        4. Generate session encryption key
-        5. Return current security status
         """
 
         session = EvoSession(
@@ -155,15 +148,22 @@ class EvoCrypt:
 
         self._sessions[session_id] = session
 
-        # Register session with SessionManager
+        # Register session
         self.sessions.create(
             session_id,
             user_id
         )
 
         # Generate first session key
-        self.keys.create_key(
+        self.keys.generate_key(
             session_id
+        )
+
+        # Initialize adaptive crypto policy
+        self.crypto.initialize_session(
+            session_id=session_id,
+            trust_score=session.trust_score,
+            action="NORMAL"
         )
 
         return self.get_status(
@@ -182,34 +182,13 @@ class EvoCrypt:
     ) -> Dict[str, Any]:
         """
         Process a new behavioral observation.
-
-        Example signals:
-
-            {
-                "typing_speed": 5.2,
-                "avg_key_hold": 110,
-                "mouse_speed": 220,
-                "mouse_distance": 950,
-                "click_count": 12,
-                "scroll_distance": 300,
-                "idle_time": 2
-            }
-
-        Context can contain:
-
-            {
-                "ip_changed": False,
-                "device_changed": False,
-                "unusual_time": False,
-                "suspicious": False
-            }
         """
 
         session = self._require(
             session_id
         )
 
-        # Do nothing if the session has already been terminated
+        # Do nothing if session has been terminated
         if not session.active:
             return self.get_status(
                 session_id
@@ -225,11 +204,10 @@ class EvoCrypt:
             context=context or {}
         )
 
-        # Update continuous trust score
         session.trust_score = result["score"]
 
         # ---------------------------------------------------------
-        # STEP 2: Convert Trust Score → RL State
+        # STEP 2: Trust Score → RL State
         # ---------------------------------------------------------
 
         state = self.agent.state_from_trust(
@@ -240,8 +218,16 @@ class EvoCrypt:
         # STEP 3: RL Policy Selection
         # ---------------------------------------------------------
 
-        action = self.agent.choose_action(state, explore=False)
-        action = self.agent.safe_action(session.trust_score, action) 
+        action = self.agent.choose_action(
+            state,
+            explore=False
+        )
+
+        # Apply mandatory safety boundaries
+        action = self.agent.safe_action(
+            session.trust_score,
+            action
+        )
 
         # ---------------------------------------------------------
         # STEP 4: Apply Security Action
@@ -269,21 +255,17 @@ class EvoCrypt:
         reason: str
     ) -> Dict[str, Any]:
         """
-        Apply a security risk event that does not directly
-        come from behavioral signals.
-
-        Example:
-
-            security.apply_external_risk(
-                session_id,
-                -20,
-                "Suspicious transaction"
-            )
+        Apply an external security risk event.
         """
 
         session = self._require(
             session_id
         )
+
+        if not session.active:
+            return self.get_status(
+                session_id
+            )
 
         # Update trust score
         session.trust_score = max(
@@ -304,17 +286,17 @@ class EvoCrypt:
             session.trust_score
         )
 
-        # Select adaptive security action
+        # Select security action
         action = self.agent.choose_action(
-    state,
-    explore=False
-)
+            state,
+            explore=False
+        )
 
-# Apply mandatory safety boundaries
+        # Apply safety boundaries
         action = self.agent.safe_action(
-         session.trust_score,
-         action
-    )
+            session.trust_score,
+            action
+        )
 
         session.last_decision_at = (
             datetime.now(timezone.utc)
@@ -335,95 +317,35 @@ class EvoCrypt:
         action: str
     ) -> Dict[str, Any]:
         """
-        Apply the security action selected by the RL engine.
+        Apply the RL-selected security action and update
+        adaptive cryptographic protection.
         """
 
         session.action = action
 
-        # ---------------------------------------------------------
-        # NORMAL
-        # ---------------------------------------------------------
-
-        if action == "NORMAL":
-
-            session.crypto_mode = (
-                "AES-256-GCM"
-            )
+        session.last_decision_at = (
+            datetime.now(timezone.utc)
+        )
 
         # ---------------------------------------------------------
-        # MONITOR
+        # Adaptive Cryptographic Policy
         # ---------------------------------------------------------
 
-        elif action == "MONITOR":
+        crypto_result = self.crypto.update(
+            session_id=session.session_id,
+            trust_score=session.trust_score,
+            action=action
+        )
 
-            session.crypto_mode = (
-                "AES-256-GCM"
-            )
-
-        # ---------------------------------------------------------
-        # ROTATE KEY
-        # ---------------------------------------------------------
-
-        elif action == "ROTATE_KEY":
-
-            self.keys.rotate(
-                session.session_id
-            )
-
-            session.crypto_mode = (
-                "AES-256-GCM"
-            )
-
-        # ---------------------------------------------------------
-        # REAUTHENTICATE
-        # ---------------------------------------------------------
-
-        elif action == "REAUTHENTICATE":
-
-            # Rotate the current session key
-            self.keys.rotate(
-                session.session_id
-            )
-
-            session.crypto_mode = (
-                "AES-256-GCM"
-            )
-
-        # ---------------------------------------------------------
-        # HYBRID PQC
-        # ---------------------------------------------------------
-
-        elif action == "HYBRID_PQC":
-
-            # A high-risk state triggers key rotation
-            self.keys.rotate(
-                session.session_id
-            )
-
-            if self.config.pqc_enabled:
-
-                session.crypto_mode = (
-                    "HYBRID-PQC"
-                )
-
-            else:
-
-                # Important:
-                # Do not falsely claim that classical
-                # cryptography is post-quantum.
-                session.crypto_mode = (
-                    "PQC-READY"
-                )
+        policy = crypto_result["policy"]
 
         # ---------------------------------------------------------
         # TERMINATE SESSION
         # ---------------------------------------------------------
 
-        elif action == "TERMINATE_SESSION":
+        if action == "TERMINATE_SESSION":
 
-            session.crypto_mode = (
-                "BLOCKED"
-            )
+            session.crypto_mode = "BLOCKED"
 
             if self.config.allow_session_termination:
 
@@ -433,8 +355,20 @@ class EvoCrypt:
                     session.session_id
                 )
 
+                self.crypto.remove_session(
+                    session.session_id
+                )
+
         # ---------------------------------------------------------
-        # Calculate risk classification
+        # OTHER SECURITY LEVELS
+        # ---------------------------------------------------------
+
+        else:
+
+            session.crypto_mode = policy.mode
+
+        # ---------------------------------------------------------
+        # Risk Classification
         # ---------------------------------------------------------
 
         session.risk_level = self._risk(
@@ -485,13 +419,53 @@ class EvoCrypt:
             session_id
         )
 
-        key_status = self.keys.status(
+        # Get current key directly from KeyManager
+        key_record = self.keys.get_key(
             session_id
         )
 
+        # Get current adaptive crypto policy
+        crypto_status = self.crypto.status(
+            session_id
+        )
+
+        # ---------------------------------------------------------
+        # Key information
+        # ---------------------------------------------------------
+
+        if key_record is None:
+
+            key_version = 0
+            key_age_seconds = 0
+            key_rotation_count = 0
+
+        else:
+
+            key_version = key_record.get(
+                "version",
+                0
+            )
+
+            key_age_seconds = max(
+                0,
+                int(
+                    time.time()
+                    - key_record["created_at"]
+                )
+            )
+
+            key_rotation_count = max(
+                0,
+                key_version - 1
+            )
+
+        # ---------------------------------------------------------
+        # Return complete security status
+        # ---------------------------------------------------------
+
         return {
 
-            # Session information
+            # Session
             "session_id":
                 session.session_id,
 
@@ -501,7 +475,7 @@ class EvoCrypt:
             "active":
                 session.active,
 
-            # Trust information
+            # Trust
             "trust_score":
                 round(
                     session.trust_score,
@@ -511,23 +485,47 @@ class EvoCrypt:
             "risk_level":
                 session.risk_level,
 
-            # RL decision
+            # RL
             "action":
                 session.action,
 
-            # Cryptographic protection
+            # Crypto
             "crypto_mode":
                 session.crypto_mode,
 
-            # Key information
+            "cipher":
+                crypto_status.get(
+                    "cipher",
+                    "NONE"
+                ),
+
+            "key_exchange":
+                crypto_status.get(
+                    "key_exchange",
+                    "NONE"
+                ),
+
+            "pqc_enabled":
+                crypto_status.get(
+                    "pqc_enabled",
+                    False
+                ),
+
+            "crypto_rotation_interval":
+                crypto_status.get(
+                    "rotation_interval",
+                    0
+                ),
+
+            # Key
             "key_version":
-                key_status["version"],
+                key_version,
 
             "key_age_seconds":
-                key_status["age_seconds"],
+                key_age_seconds,
 
             "key_rotation_count":
-                key_status["rotation_count"],
+                key_rotation_count,
 
             # Explainability
             "reasons":
@@ -547,18 +545,6 @@ class EvoCrypt:
     ):
         """
         Perform one Q-learning update.
-
-        Example:
-
-            security.train_step(
-                "MEDIUM",
-                "ROTATE_KEY",
-                5,
-                "HIGH"
-            )
-
-        Training can be performed offline so that runtime
-        inference remains lightweight.
         """
 
         self.agent.update(
@@ -578,9 +564,6 @@ class EvoCrypt:
     ) -> EvoSession:
         """
         Return a registered EvoCrypt session.
-
-        Raises:
-            KeyError: if the session does not exist.
         """
 
         if session_id not in self._sessions:
@@ -592,54 +575,90 @@ class EvoCrypt:
         return self._sessions[
             session_id
         ]
-def simulate_hijack(self, session_id: str, severity: str = "moderate") -> Dict[str, Any]:
-    """
-    Inject realistic hijacking indicators through the real
-    Trust -> RL -> Security pipeline instead of forcing a score.
-    """
-    session = self._require(session_id)
 
-    if not session.active:
-        return self.get_status(session_id)
+    # =============================================================
+    # ATTACK SIMULATION
+    # =============================================================
 
-    profiles = {
-        "moderate": {
-            "signals": {
-                "typing_speed": 0.2, "avg_key_hold": 480,
-                "mouse_speed": 1900, "mouse_distance": 4000,
-                "click_count": 2, "scroll_distance": 0, "idle_time": 0,
-            },
-            "context": {
-                "device_changed": True, "ip_changed": False,
-                "unusual_time": False,
-            },
-        },
-        "high": {
-            "signals": {
-                "typing_speed": 0.1, "avg_key_hold": 490,
-                "mouse_speed": 2000, "mouse_distance": 16000,
-                "click_count": 0, "scroll_distance": 0, "idle_time": 0,
-                "suspicious": True,
-            },
-            "context": {
-                "device_changed": True, "ip_changed": True,
-                "unusual_time": True,
-            },
-        },
-    }
+    def simulate_hijack(
+        self,
+        session_id: str,
+        severity: str = "moderate"
+    ) -> Dict[str, Any]:
+        """
+        Inject realistic hijacking indicators through the real
+        Trust → RL → Security pipeline.
+        """
 
-    profile = profiles.get(severity, profiles["moderate"])
-
-    status = self.record_behavior(
-        session_id,
-        signals=profile["signals"],
-        context=profile["context"],
-    )
-
-    if severity == "high":
-        status = self.apply_external_risk(
-            session_id, -15,
-            "Session token reused from an unrecognized device/network",
+        session = self._require(
+            session_id
         )
 
-    return status
+        if not session.active:
+            return self.get_status(
+                session_id
+            )
+
+        profiles = {
+
+            "moderate": {
+
+                "signals": {
+                    "typing_speed": 0.2,
+                    "avg_key_hold": 480,
+                    "mouse_speed": 1900,
+                    "mouse_distance": 4000,
+                    "click_count": 2,
+                    "scroll_distance": 0,
+                    "idle_time": 0,
+                },
+
+                "context": {
+                    "device_changed": True,
+                    "ip_changed": False,
+                    "unusual_time": False,
+                },
+            },
+
+            "high": {
+
+                "signals": {
+                    "typing_speed": 0.1,
+                    "avg_key_hold": 490,
+                    "mouse_speed": 2000,
+                    "mouse_distance": 16000,
+                    "click_count": 0,
+                    "scroll_distance": 0,
+                    "idle_time": 0,
+                    "suspicious": True,
+                },
+
+                "context": {
+                    "device_changed": True,
+                    "ip_changed": True,
+                    "unusual_time": True,
+                },
+            },
+        }
+
+        profile = profiles.get(
+            severity,
+            profiles["moderate"]
+        )
+
+        status = self.record_behavior(
+            session_id,
+            signals=profile["signals"],
+            context=profile["context"]
+        )
+
+        if severity == "high" and status["active"]:
+
+            status = self.apply_external_risk(
+                session_id,
+                -15,
+                "Session token reused from an unrecognized device/network"
+            )
+
+        return status
+
