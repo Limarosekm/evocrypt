@@ -52,7 +52,7 @@ app.secret_key = os.environ.get(
 
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
-    "postgresql+psycopg2://postgres:Lima%402005@localhost:5432/evocrypt"
+    "postgresql+psycopg2://postgres:EvoCrypt2026Local@localhost:5432/evocrypt"
 )
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -729,6 +729,7 @@ def home():
 @app.get("/dashboard")
 def dashboard():
 
+
     if "user" not in session:
         return redirect("/")
 
@@ -736,7 +737,15 @@ def dashboard():
         "dashboard.html",
         user=session["user"]
     )
+@app.get("/security-intelligence")
+def security_intelligence():
+    if "user" not in session:
+        return redirect(url_for("login"))
 
+    return render_template(
+        "security_intelligence.html",
+        user=session["user"]
+    )
 def get_client_ip():
 
     forwarded = request.headers.get(

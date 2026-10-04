@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>EvoCrypt | Security Intelligence</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+       
+    .intel-page {
+        min-height: 100vh;
+        padding: 28px 36px 60px;
+        background: var(--ink-950);
+        color: var(--text-100);
+    }
+
+    .intel-container {
+        max-width: 1180px;
+        margin: 0 auto;
+    }
+
+    .intel-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 26px;
+    }
+
+    .intel-brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .intel-logo {
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: var(--panel-800);
+        border: 1px solid var(--line-600);
+        color: var(--teal-300);
+        font-family: var(--font-mono);
+        box-shadow: none;
+    }
+
+    .intel-title {
+        margin: 0;
+        color: var(--text-100);
+        font-family: var(--font-display);
+        font-size: 24px;
+        letter-spacing: -0.01em;
+    }
+
+    .intel-subtitle {
+        margin: 4px 0 0;
+        color: var(--text-500);
+        font-family: var(--font-mono);
+        font-size: 12px;
+    }
+
+    .intel-live {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-radius: 999px;
+        background: var(--panel-800);
+        border: 1px solid var(--line-600);
+        color: var(--teal-300);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        letter-spacing: .06em;
+    }
+
+    .live-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--teal-300);
+        box-shadow: 0 0 8px var(--teal-300);
+    }
+
+    .intel-hero {
+        padding: 22px;
+        margin-bottom: 20px;
+        border: 1px solid var(--line-600);
+        border-radius: 8px;
+        background: linear-gradient(
+            145deg,
+            var(--panel-800),
+            var(--ink-900)
+        );
+    }
+
+    .hero-label {
+        margin-bottom: 7px;
+        color: var(--text-500);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    .intel-hero h2 {
+        margin: 0 0 8px;
+        color: var(--text-100);
+        font-family: var(--font-display);
+        font-size: 18px;
+    }
+
+    .intel-hero p {
+        max-width: 760px;
+        margin: 0;
+        color: var(--text-300);
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .section-title {
+        margin: 26px 0 14px;
+        color: var(--text-100);
+        font-family: var(--font-display);
+        font-size: 16px;
+    }
+
+    .pipeline {
+        display: grid;
+        grid-template-columns: repeat(6, 1fr);
+        gap: 12px;
+    }
+
+    .pipeline-step {
+        min-height: 135px;
+        padding: 16px;
+        border: 1px solid var(--line-600);
+        border-radius: 7px;
+        background: var(--panel-800);
+        transition: .2s ease;
+    }
+
+    .pipeline-step:hover {
+        border-color: var(--line-500);
+        background: var(--panel-700);
+        transform: translateY(-2px);
+    }
+
+    .step-number {
+        margin-bottom: 13px;
+        color: var(--text-500);
+        font-family: var(--font-mono);
+        font-size: 9px;
+    }
+
+    .step-icon {
+        margin-bottom: 10px;
+        font-size: 20px;
+    }
+
+    .pipeline-step h3 {
+        margin: 0 0 6px;
+        color: var(--text-100);
+        font-size: 13px;
+    }
+
+    .pipeline-step p {
+        margin: 0;
+        color: var(--text-500);
+        font-size: 11px;
+        line-height: 1.5;
+    }
+
+    .intel-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+
+    .intel-card {
+        padding: 20px;
+        border: 1px solid var(--line-600);
+        border-radius: 7px;
+        background: linear-gradient(
+            145deg,
+            var(--panel-800),
+            var(--ink-900)
+        );
+        transition: .2s ease;
+    }
+
+    .intel-card:hover {
+        border-color: var(--line-500);
+        transform: translateY(-2px);
+    }
+
+    .card-icon {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 14px;
+        border-radius: 7px;
+        background: rgba(45, 212, 191, .06);
+        border: 1px solid rgba(45, 212, 191, .18);
+    }
+
+    .intel-card h3 {
+        margin: 0 0 7px;
+        color: var(--text-100);
+        font-size: 14px;
+    }
+
+    .intel-card p {
+        margin: 0;
+        color: var(--text-500);
+        font-size: 12px;
+        line-height: 1.55;
+    }
+
+    .intel-tag {
+        display: inline-block;
+        margin-top: 14px;
+        padding: 4px 7px;
+        border-radius: 5px;
+        background: rgba(45, 212, 191, .06);
+        color: var(--teal-300);
+        font-family: var(--font-mono);
+        font-size: 9px;
+        letter-spacing: .04em;
+    }
+
+    .decision-panel {
+        display: grid;
+        grid-template-columns: 1.3fr .7fr;
+        gap: 16px;
+    }
+
+    .decision-main,
+    .decision-status {
+        padding: 20px;
+        border: 1px solid var(--line-600);
+        border-radius: 7px;
+        background: var(--panel-800);
+    }
+
+    .decision-main h3,
+    .decision-status h3 {
+        margin: 0 0 8px;
+        color: var(--text-100);
+        font-size: 14px;
+    }
+
+    .decision-flow {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+
+    .decision-node {
+        padding: 9px 11px;
+        border: 1px solid var(--line-600);
+        border-radius: 6px;
+        background: var(--ink-900);
+        color: var(--text-300);
+        font-family: var(--font-mono);
+        font-size: 10px;
+    }
+
+    .arrow {
+        color: var(--teal-300);
+        font-family: var(--font-mono);
+    }
+
+    .status-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line-600);
+        color: var(--text-500);
+        font-size: 11px;
+    }
+
+    .status-row:last-child {
+        border-bottom: none;
+    }
+
+    .status-value {
+        color: var(--teal-300);
+        font-family: var(--font-mono);
+    }
+
+    .intel-footer {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 28px;
+        padding-top: 16px;
+        border-top: 1px solid var(--line-600);
+        color: var(--text-500);
+        font-family: var(--font-mono);
+        font-size: 9px;
+    }
+
+    @media (max-width: 1000px) {
+        .pipeline {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .intel-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 700px) {
+        .intel-page {
+            padding: 24px 18px 40px;
+        }
+
+        .intel-top {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .pipeline,
+        .intel-grid,
+        .decision-panel {
+            grid-template-columns: 1fr;
+        }
+
+        .intel-footer {
+            flex-direction: column;
+            gap: 7px;
+        }
+    }
+    </style>
+</head>
+
+<body>
+
+<div class="intel-page">
+    <div class="intel-container">
+
+        <!-- HEADER -->
+        <div class="intel-top">
+
+            <div class="intel-brand">
+                <div class="intel-logo">🛡️</div>
+
+                <div>
+                    <h1 class="intel-title">EvoCrypt Security Intelligence</h1>
+                    <p class="intel-subtitle">
+                        Understand how your account is protected in real time.
+                    </p>
+                </div>
+            </div>
+
+            <div class="intel-live">
+                <span class="live-dot"></span>
+                SECURITY ENGINE ACTIVE
+            </div>
+
+        </div>
+
+
+        <!-- HERO -->
+        <section class="intel-hero">
+
+            <div class="hero-label">
+                Adaptive Security Layer
+            </div>
+
+            <h2>
+                Security that continuously adapts to risk.
+            </h2>
+
+            <p>
+                EvoCrypt combines behavioral monitoring, trust evaluation,
+                reinforcement learning and adaptive cryptography to dynamically
+                respond to changing security conditions during a user session.
+            </p>
+
+        </section>
+
+
+        <!-- PIPELINE -->
+        <h2 class="section-title">
+            Adaptive Protection
+        </h2>
+
+        <div class="pipeline">
+
+            <div class="pipeline-step">
+                <div class="step-number">01 / INPUT</div>
+                <div class="step-icon">🧠</div>
+                <h3>Behavior Monitor</h3>
+                <p>
+                    Collects session and behavioral signals.
+                </p>
+            </div>
+
+            <div class="pipeline-step">
+                <div class="step-number">02 / ANALYSIS</div>
+                <div class="step-icon">📊</div>
+                <h3>Trust Evaluation</h3>
+                <p>
+                    Converts observed behavior into a dynamic trust score.
+                </p>
+            </div>
+
+            <div class="pipeline-step">
+                <div class="step-number">03 / DECISION</div>
+                <div class="step-icon">🤖</div>
+                <h3>RL Engine</h3>
+                <p>
+                    Selects an adaptive security response according to risk.
+                </p>
+            </div>
+
+            <div class="pipeline-step">
+                <div class="step-number">04 / CRYPTO</div>
+                <div class="step-icon">🔐</div>
+                <h3>Crypto Engine</h3>
+                <p>
+                    Selects classical, hybrid or post-quantum protection.
+                </p>
+            </div>
+
+            <div class="pipeline-step">
+                <div class="step-number">05 / ROTATION</div>
+                <div class="step-icon">🔄</div>
+                <h3>Key Rotation</h3>
+                <p>
+                    Security keys can be refreshed as the threat level changes.
+                </p>
+            </div>
+
+            <div class="pipeline-step">
+                <div class="step-number">06 / SESSION</div>
+                <div class="step-icon">🔒</div>
+                <h3>Secure Session</h3>
+                <p>
+                    Maintains protection throughout the active session.
+                </p>
+            </div>
+
+        </div>
+
+
+        <!-- SECURITY INTELLIGENCE -->
+        <h2 class="section-title">
+            Security Intelligence
+        </h2>
+
+        <div class="intel-grid">
+
+            <div class="intel-card">
+                <div class="card-icon">🧠</div>
+                <h3>Behavioral Monitoring</h3>
+                <p>
+                    Continuous monitoring of user behavior helps identify
+                    deviations from normal session activity.
+                </p>
+                <span class="intel-tag">CONTINUOUS ANALYSIS</span>
+            </div>
+
+
+            <div class="intel-card">
+                <div class="card-icon">📈</div>
+                <h3>Dynamic Trust Score</h3>
+                <p>
+                    Behavioral observations are translated into a trust
+                    value representing the current security state.
+                </p>
+                <span class="intel-tag">0 — 100 TRUST MODEL</span>
+            </div>
+
+
+            <div class="intel-card">
+                <div class="card-icon">🤖</div>
+                <h3>RL Decision Engine</h3>
+                <p>
+                    The adaptive policy determines whether protection
+                    should be maintained, rotated or strengthened.
+                </p>
+                <span class="intel-tag">ADAPTIVE POLICY</span>
+            </div>
+
+
+            <div class="intel-card">
+                <div class="card-icon">🔐</div>
+                <h3>Post-Quantum Protection</h3>
+                <p>
+                    The architecture supports stronger cryptographic
+                    protection including hybrid and post-quantum modes.
+                </p>
+                <span class="intel-tag">PQC READY</span>
+            </div>
+
+
+            <div class="intel-card">
+                <div class="card-icon">🔄</div>
+                <h3>Dynamic Key Rotation</h3>
+                <p>
+                    Security keys can be rotated when session risk
+                    increases, reducing the exposure of long-lived keys.
+                </p>
+                <span class="intel-tag">KEY LIFECYCLE</span>
+            </div>
+
+
+            <div class="intel-card">
+                <div class="card-icon">⚠️</div>
+                <h3>Attack Response</h3>
+                <p>
+                    Suspicious behavior can trigger stronger monitoring,
+                    session protection and adaptive cryptographic responses.
+                </p>
+                <span class="intel-tag">THREAT RESPONSE</span>
+            </div>
+
+        </div>
+
+
+        <!-- DECISION ENGINE -->
+        <h2 class="section-title">
+            Reinforcement Learning Decision Flow
+        </h2>
+
+        <div class="decision-panel">
+
+            <div class="decision-main">
+
+                <h3>Adaptive Policy Decision</h3>
+
+                <p style="color:#8b9ab0; font-size:13px; line-height:1.6;">
+                    EvoCrypt evaluates the current security state and selects
+                    an appropriate protection action based on the observed
+                    risk level.
+                </p>
+
+                <div class="decision-flow">
+
+                    <div class="decision-node">
+                        Behavioral State
+                    </div>
+
+                    <span class="arrow">→</span>
+
+                    <div class="decision-node">
+                        Trust Score
+                    </div>
+
+                    <span class="arrow">→</span>
+
+                    <div class="decision-node">
+                        RL Policy
+                    </div>
+
+                    <span class="arrow">→</span>
+
+                    <div class="decision-node">
+                        Security Action
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="decision-status">
+
+                <h3>Protection Status</h3>
+
+                <div class="status-row">
+                    <span>Monitoring</span>
+                    <span class="status-value">ACTIVE</span>
+                </div>
+
+                <div class="status-row">
+                    <span>Trust Evaluation</span>
+                    <span class="status-value">LIVE</span>
+                </div>
+
+                <div class="status-row">
+                    <span>Adaptive Policy</span>
+                    <span class="status-value">READY</span>
+                </div>
+
+                <div class="status-row">
+                    <span>Session Security</span>
+                    <span class="status-value">PROTECTED</span>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- FOOTER -->
+        <div class="intel-footer">
+
+            <span>
+                EvoCrypt • Adaptive Post-Quantum Security Layer
+            </span>
+
+            <span>
+                SECURITY INTELLIGENCE MODULE
+            </span>
+
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>
