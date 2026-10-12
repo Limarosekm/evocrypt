@@ -1,0 +1,4 @@
+# Install in addition to the existing requirements.txt
+qiskit>=2.1.0
+qiskit-aer>=0.17.0
+qiskit-ibm-runtime>=0.40.1

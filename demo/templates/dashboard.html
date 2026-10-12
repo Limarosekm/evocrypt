@@ -20,6 +20,49 @@
         href="{{ url_for('static', filename='css/style.css') }}"
     >
 
+
+<style>
+.qsl-shell{max-width:1450px;margin:0 auto;padding:24px;color:var(--text,#e8edf7)}
+.qsl-hero{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding:26px;border:1px solid rgba(126,151,190,.25);border-radius:18px;background:radial-gradient(ellipse at 90% 0%,rgba(55,105,180,.22),transparent 45%),linear-gradient(135deg,#111c30,#0b1220);margin-bottom:18px}
+.qsl-eyebrow{font-size:10px;letter-spacing:2px;font-weight:800;color:#7dd3fc;margin-bottom:10px}
+.qsl-hero h1{font-size:clamp(26px,3vw,38px);margin:0 0 9px;color:#f5f8ff}
+.qsl-hero p,.qsl-muted{color:#9eacc3;line-height:1.65;font-size:13px}
+.qsl-hero p{max-width:680px;margin:0}
+.qsl-badges{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
+.qsl-badge{border:1px solid rgba(125,211,252,.35);border-radius:6px;padding:7px 9px;color:#9fe3ff;font-size:9px;letter-spacing:1px;white-space:nowrap}
+.qsl-stepper{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 18px}
+.qsl-step{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid rgba(126,151,190,.2);border-radius:12px;background:#111a2a;color:#b9c7dc;font-size:12px}
+.qsl-step b{font-size:13px;color:#7dd3fc}
+.qsl-panel{padding:22px;border:1px solid rgba(126,151,190,.23);border-radius:16px;background:linear-gradient(145deg,#111b2c,#0c1422);margin-bottom:18px;min-width:0}
+.qsl-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.qsl-panel h2{font-size:19px;margin:0 0 8px;color:#edf4ff}
+.qsl-panel h3{font-size:14px;margin:0;color:#e7eefb}
+.qsl-status{border:1px solid #42516a;background:#1a273a;color:#b7c8e2;padding:7px 10px;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:1px}
+.qsl-status.running{color:#fde68a;border-color:#a16207;background:#422006}.qsl-status.completed{color:#86efac;border-color:#15803d;background:#052e1b}.qsl-status.failed{color:#fca5a5;border-color:#b91c1c;background:#450a0a}
+.qsl-controls{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 15px}
+.qsl-controls button{border:0;border-radius:8px;padding:11px 15px;font-weight:750;cursor:pointer;background:#2563eb;color:white}
+.qsl-controls button:disabled{opacity:.55;cursor:wait}.qsl-controls .qsl-secondary{background:#202d41;border:1px solid #40506a;color:#d7e2f3}
+.qsl-progress-track{height:4px;background:#202d41;border-radius:8px;overflow:hidden}.qsl-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#38bdf8,#818cf8);transition:width .35s}
+.qsl-status-row{display:flex;justify-content:space-between;gap:10px;margin:10px 0 18px;color:#9eacc3;font-size:11px}.qsl-status-row strong{color:#dbeafe}
+.qsl-results-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.qsl-result{padding:15px;border-radius:11px;border:1px solid rgba(126,151,190,.18);background:#0b1321;min-width:0}
+.qsl-result-label{display:block;font-size:10px;letter-spacing:1px;color:#8194b1;text-transform:uppercase;margin-bottom:12px}
+.qsl-result strong{display:block;font-size:18px;color:#e6f1ff;overflow-wrap:anywhere}
+.qsl-result small{display:block;color:#8194b1;font-size:10px;margin-top:7px;line-height:1.5}
+.qsl-output-header{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:22px;margin-bottom:10px}
+.qsl-output-header p{font-size:11px;color:#8194b1;margin:5px 0 0}
+.qsl-live-indicator{font-size:9px;color:#86efac;letter-spacing:1px}.qsl-live-indicator i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#4ade80;margin-right:6px}
+.qsl-console{height:270px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;background:#050a12;border:1px solid #26344a;border-radius:10px;padding:15px;color:#b7e3c7;font:11px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;margin:0}
+.qsl-two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.qsl-empty{padding:20px;text-align:center;color:#71829c;border:1px dashed #34445d;border-radius:10px;font-size:12px}
+.qsl-measurement{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:9px 11px;border-bottom:1px solid rgba(126,151,190,.13);font:11px ui-monospace,monospace;color:#cbd5e1}
+.qsl-count{color:#7dd3fc;font-weight:800}.qsl-equation{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:15px;padding:14px;background:#0a1321;border-radius:10px;color:#94a3b8;font-size:12px}.qsl-equation b{color:#a7f3d0;font-family:ui-monospace,monospace}
+.qsl-defense-flow{display:flex;flex-direction:column;align-items:stretch;margin:18px 0}.qsl-defense-flow div{padding:13px 15px;border:1px solid rgba(125,211,252,.2);background:#0b1627;border-radius:9px}.qsl-defense-flow b{display:block;color:#b9e6ff;font-size:13px}.qsl-defense-flow span{display:block;color:#8295b1;font-size:11px;margin-top:5px}.qsl-defense-flow em{text-align:center;color:#7dd3fc;font-style:normal;padding:5px}
+.qsl-check-row{display:flex;justify-content:space-between;gap:12px;padding:12px 0;border-top:1px solid rgba(126,151,190,.15);font-size:12px;color:#b8c6da}.qsl-check-row strong{font-size:10px;letter-spacing:.7px;color:#94a3b8}.qsl-check-row strong.pass{color:#86efac}.qsl-check-row strong.fail{color:#fca5a5}
+.qsl-footnote,.qsl-caveat p{font-size:11px;line-height:1.7;color:#91a1b9}.qsl-caveat{border:1px solid rgba(251,191,36,.24);background:rgba(120,82,14,.11);border-radius:12px;padding:16px 19px;margin-bottom:20px}.qsl-caveat strong{color:#fcd34d;font-size:12px}.qsl-caveat p{margin:8px 0 0}
+@media(max-width:850px){.qsl-hero{display:block}.qsl-badges{justify-content:flex-start;margin-top:16px}.qsl-results-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.qsl-two-col{grid-template-columns:1fr}.qsl-stepper{grid-template-columns:1fr}.qsl-shell{padding:14px}.qsl-panel{padding:16px}}
+</style>
+
 </head>
 
 
@@ -94,7 +137,13 @@
 >
     ◇ Security Intelligence
 </div>
-
+<div
+    class="nav-item"
+    data-page="quantum-lab"
+    onclick="showPage('quantum-lab', this)"
+>
+    ⚛️ Quantum Security Lab
+</div>
 
         <div class="sidebar-spacer"></div>
 
@@ -1214,6 +1263,102 @@
 </div>
 
 </div>
+
+<!-- EVOCRYPT QUANTUM SECURITY LAB -->
+<div id="page-quantum-lab" class="page">
+  <div class="qsl-shell">
+    <div class="qsl-hero">
+      <div>
+        <div class="qsl-eyebrow">EVOCRYPT RESEARCH MODULE / Q-01</div>
+        <h1>Quantum Security Lab</h1>
+        <p>Run the quantum experiment, inspect its measurements, then verify the post-quantum defense.</p>
+      </div>
+      <div class="qsl-badges">
+        <span class="qsl-badge">IBM QUANTUM</span>
+        <span class="qsl-badge">SHOR ORDER-FINDING</span>
+        <span class="qsl-badge">ML-KEM-768</span>
+      </div>
+    </div>
+
+    <div class="qsl-stepper" aria-label="Experiment stages">
+      <div class="qsl-step"><b>01</b><span>Run quantum experiment</span></div>
+      <div class="qsl-step"><b>02</b><span>Inspect measured results</span></div>
+      <div class="qsl-step"><b>03</b><span>Verify PQC defense</span></div>
+    </div>
+
+    <section class="qsl-panel">
+      <div class="qsl-panel-head">
+        <div><div class="qsl-eyebrow">LIVE EXPERIMENT</div><h2>Shor’s algorithm → RSA factor recovery</h2></div>
+        <span id="qsl-status-pill" class="qsl-status">READY</span>
+      </div>
+      <p class="qsl-muted">This launches the existing EvoCrypt quantum-vs-PQC script on IBM hardware. It may take time while IBM queues and executes the job.</p>
+      <div class="qsl-controls">
+        <button id="qsl-run-button" type="button" onclick="startQuantumExperiment()">▶ Run IBM experiment + PQC tests</button>
+        <button id="qsl-reset-button" type="button" class="qsl-secondary" onclick="resetQuantumExperiment()">Reset view</button>
+      </div>
+      <div class="qsl-progress-track"><div id="qsl-progress-bar" class="qsl-progress-bar"></div></div>
+      <div class="qsl-status-row"><strong id="qsl-stage">Ready to run</strong><span id="qsl-time"></span></div>
+
+      <div class="qsl-results-grid">
+        <div class="qsl-result">
+          <span class="qsl-result-label">IBM job ID</span>
+          <strong id="qsl-job-id">Waiting for run</strong>
+          <small>Read from the experiment output</small>
+        </div>
+        <div class="qsl-result">
+          <span class="qsl-result-label">Recovered factors</span>
+          <strong id="qsl-factors">— × —</strong>
+          <small id="qsl-factor-note">No results yet</small>
+        </div>
+        <div class="qsl-result">
+          <span class="qsl-result-label"> RSA check</span>
+          <strong id="qsl-rsa-check">NOT RUN</strong>
+          <small>Only a deliberately tiny modulus</small>
+        </div>
+        <div class="qsl-result">
+          <span class="qsl-result-label">PQC verification</span>
+          <strong id="qsl-pqc-check">NOT RUN</strong>
+          <small id="qsl-pqc-note">ML-KEM + authenticated encryption</small>
+        </div>
+      </div>
+
+      <div class="qsl-output-header">
+        <div><h3>Experiment console</h3><p>Live stdout from the actual Python process</p></div>
+        <span class="qsl-live-indicator"><i></i> LIVE OUTPUT</span>
+      </div>
+      <pre id="qsl-console" class="qsl-console" aria-live="polite">Ready. Click “Run IBM experiment + PQC tests” to launch the real workflow.</pre>
+    </section>
+
+    <div class="qsl-two-col">
+      <section class="qsl-panel">
+        <div class="qsl-eyebrow">01 / QUANTUM MEASUREMENTS</div>
+        <h2>What did the hardware measure?</h2>
+        <p class="qsl-muted">Measurement bitstrings and counts below are extracted from the experiment’s real console output. Nothing is pre-filled as a successful result.</p>
+        <div id="qsl-measurements" class="qsl-measurements"><div class="qsl-empty">Measurements will appear after the run starts.</div></div>
+        <div class="qsl-equation">
+          <span>Order finding</span><b id="qsl-order">r = —</b>
+          <span>Factorization</span><b id="qsl-factor-equation">N = —</b>
+        </div>
+      </section>
+      <section class="qsl-panel">
+        <div class="qsl-eyebrow">02 / POST-QUANTUM DEFENSE</div>
+        <h2>Verify the replacement path</h2>
+        <div class="qsl-defense-flow">
+          <div><b>ML-KEM-768</b><span>Encapsulate shared secret</span></div><em>↓</em>
+          <div><b>HKDF-SHA256</b><span>Derive an AES key</span></div><em>↓</em>
+          <div><b>AES-256-GCM</b><span>Encrypt + authenticate message</span></div>
+        </div>
+        <div class="qsl-check-row"><span>Encrypt/decrypt round trip</span><strong id="qsl-roundtrip">NOT RUN</strong></div>
+        <div class="qsl-check-row"><span>Tamper detection</span><strong id="qsl-tamper">NOT RUN</strong></div>
+        <p class="qsl-footnote">ML-KEM establishes a shared secret; AES-GCM encrypts the message. The console must report actual test outcomes before these checks are marked complete.</p>
+      </section>
+    </div>
+
+  
+  </div>
+</div>
+<!-- END EVOCRYPT QUANTUM SECURITY LAB -->
+
     </main>
 
 </div>

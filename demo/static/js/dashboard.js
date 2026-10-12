@@ -31,12 +31,16 @@ function money(value) {
 // PAGE / TAB NAVIGATION
 // ============================================================
 
+
 const pageTitles = {
     overview: "Account Overview",
     cards: "Cards",
     statements: "Statements",
-    security: "Security Center"
+    security: "Security Center",
+    "security-intelligence": "Security Intelligence",
+    "quantum-lab": "Quantum Security Lab"
 };
+
 
 
 function showPage(pageName, navElement) {
@@ -1511,4 +1515,209 @@ function formatScenario(value) {
                 word.slice(1)
         )
         .join(" ");
+}
+
+
+
+// ============================================================
+// QUANTUM SECURITY LAB — LIVE EXPERIMENT CONTROLLER
+// ============================================================
+let quantumPollTimer = null;
+let quantumLastOutput = "";
+
+async function analyzeQuantumRisk() {
+    const algorithmElement = document.getElementById("quantum-algorithm");
+    const resultBox = document.getElementById("quantum-risk-result");
+    const button = document.getElementById("quantum-analyze-button");
+    if (!algorithmElement || !resultBox || !button) return;
+
+    button.disabled = true;
+    resultBox.textContent = "Analyzing quantum risk...";
+    try {
+        const response = await fetch(
+            `/api/quantum-risk?algorithm=${encodeURIComponent(algorithmElement.value)}`,
+            { credentials: "same-origin" }
+        );
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || "Risk analysis failed.");
+        resultBox.replaceChildren();
+        const heading = document.createElement("h3");
+        heading.textContent = `Risk: ${data.risk}`;
+        const category = document.createElement("p");
+        category.textContent = `Category: ${data.category}`;
+        const reason = document.createElement("p");
+        reason.textContent = data.quantum_reason;
+        const recommendation = document.createElement("p");
+        recommendation.textContent = `Recommendation: ${data.recommendation}`;
+        const note = document.createElement("p");
+        note.textContent = data.quantum_computer_assumption;
+        resultBox.append(heading, category, reason, recommendation, note);
+    } catch (error) {
+        resultBox.textContent = `Unable to analyze risk: ${error.message}`;
+    } finally {
+        button.disabled = false;
+    }
+}
+
+async function startQuantumExperiment() {
+    const button = document.getElementById("qsl-run-button");
+    const consoleBox = document.getElementById("qsl-console");
+    if (!button || !consoleBox) return;
+    button.disabled = true;
+    setQuantumStatus("running", "Starting");
+    consoleBox.textContent = "Requesting experiment start...\n";
+    quantumLastOutput = "";
+
+    try {
+        const response = await fetch("/api/quantum-demo/start", {
+            method: "POST",
+            credentials: "same-origin"
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || "Could not start experiment.");
+        await pollQuantumExperiment();
+        if (quantumPollTimer) clearInterval(quantumPollTimer);
+        quantumPollTimer = setInterval(pollQuantumExperiment, 1500);
+    } catch (error) {
+        setQuantumStatus("failed", "Could not start");
+        consoleBox.textContent += `\nERROR: ${error.message}\n`;
+        button.disabled = false;
+    }
+}
+
+async function pollQuantumExperiment() {
+    try {
+        const response = await fetch("/api/quantum-demo/status", { credentials: "same-origin" });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || "Status request failed.");
+
+        const consoleBox = document.getElementById("qsl-console");
+        if (consoleBox && data.output !== quantumLastOutput) {
+            quantumLastOutput = data.output || "";
+            consoleBox.textContent = quantumLastOutput || "Experiment process started; waiting for output...";
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+        document.getElementById("qsl-stage").textContent = data.stage || "Running";
+        document.getElementById("qsl-time").textContent = data.started_at ? `Started ${new Date(data.started_at).toLocaleTimeString()}` : "";
+        setQuantumStatus(data.status || "running", data.status === "completed" ? "COMPLETE" : data.status === "failed" ? "FAILED" : "RUNNING");
+        parseQuantumConsole(data.output || "");
+
+        if (data.status === "completed" || data.status === "failed") {
+            if (quantumPollTimer) clearInterval(quantumPollTimer);
+            quantumPollTimer = null;
+            document.getElementById("qsl-run-button").disabled = false;
+            document.getElementById("qsl-progress-bar").style.width = data.status === "completed" ? "100%" : "100%";
+        } else {
+            document.getElementById("qsl-progress-bar").style.width = "65%";
+        }
+    } catch (error) {
+        document.getElementById("qsl-stage").textContent = `Status check failed: ${error.message}`;
+    }
+}
+
+function setQuantumStatus(status, label) {
+    const pill = document.getElementById("qsl-status-pill");
+    if (!pill) return;
+    pill.className = `qsl-status ${status}`;
+    pill.textContent = label.toUpperCase();
+    if (status === "running") document.getElementById("qsl-progress-bar").style.width = "25%";
+    if (status === "idle") document.getElementById("qsl-progress-bar").style.width = "0%";
+}
+
+function parseQuantumConsole(output) {
+    const lines = output.split(/\r?\n/);
+    const joined = lines.join("\n");
+    const jobMatch = joined.match(/job(?:\s+id)?\s*[:=]\s*([A-Za-z0-9_-]{8,})/i)
+        || joined.match(/\b(db[a-z0-9]{8,})\b/i);
+    if (jobMatch) document.getElementById("qsl-job-id").textContent = jobMatch[1];
+
+    const orderMatch = joined.match(/\b(?:estimated\s+)?order\s*(?:r)?\s*[:=]\s*(\d+)/i)
+        || joined.match(/\br\s*=\s*(\d+)/i);
+    if (orderMatch) document.getElementById("qsl-order").textContent = `r = ${orderMatch[1]}`;
+
+    const factorMatch = joined.match(/(?:factors?|recovered factors?)\s*[:=]\s*(\d+)\s*(?:and|,|x|×|\*)\s*(\d+)/i)
+        || joined.match(/\bp\s*=\s*(\d+)[,\s]+q\s*=\s*(\d+)/i)
+        || joined.match(/\b(\d+)\s*[×x*]\s*(\d+)\s*=\s*15\b/i);
+    if (factorMatch) {
+        document.getElementById("qsl-factors").textContent = `${factorMatch[1]} × ${factorMatch[2]}`;
+        document.getElementById("qsl-factor-equation").textContent = `N = ${factorMatch[1]} × ${factorMatch[2]}`;
+        document.getElementById("qsl-factor-note").textContent = "Parsed from actual experiment output";
+    }
+
+    if (/toy rsa.*verified\s*[:=]?\s*true|decryption verified|verified\s*[:=]\s*true/i.test(joined)) {
+        document.getElementById("qsl-rsa-check").textContent = "PASS";
+        document.getElementById("qsl-rsa-check").className = "pass";
+    } else if (/toy rsa.*verified\s*[:=]?\s*false|verification failed/i.test(joined)) {
+        document.getElementById("qsl-rsa-check").textContent = "FAIL";
+        document.getElementById("qsl-rsa-check").className = "fail";
+    }
+
+    if (/round.?trip.{0,30}(pass|success)|encryption\/decryption.{0,30}pass|pqc.*pass/i.test(joined)) {
+        document.getElementById("qsl-pqc-check").textContent = "PASS";
+        document.getElementById("qsl-roundtrip").textContent = "PASS";
+        document.getElementById("qsl-roundtrip").className = "pass";
+    }
+    if (/tamper.{0,40}(pass|detected|reject)|tampering detection.{0,30}pass/i.test(joined)) {
+        document.getElementById("qsl-tamper").textContent = "PASS";
+        document.getElementById("qsl-tamper").className = "pass";
+        document.getElementById("qsl-pqc-note").textContent = "Round-trip and tamper test confirmed";
+    }
+
+    // Render only count-like lines actually present in stdout.
+    const counts = [];
+    for (const line of lines) {
+        const m = line.match(/^\s*([01]{4,16})\s*[:=]\s*(\d+)\s*$/);
+        if (m) counts.push({ bits: m[1], count: Number(m[2]) });
+    }
+    const measurementBox = document.getElementById("qsl-measurements");
+    if (counts.length && measurementBox) {
+        const unique = new Map();
+        counts.forEach(item => unique.set(item.bits, item.count));
+        const sorted = [...unique.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12);
+        const max = Math.max(...sorted.map(x => x[1]), 1);
+        measurementBox.replaceChildren();
+        sorted.forEach(([bits, count]) => {
+            const row = document.createElement("div");
+            row.className = "qsl-measurement";
+            const label = document.createElement("span");
+            label.textContent = bits;
+            const amount = document.createElement("span");
+            amount.className = "qsl-count";
+            amount.textContent = `${count} shots (${Math.round(count / max * 100)}% of max)`;
+            row.append(label, amount);
+            measurementBox.appendChild(row);
+        });
+    }
+}
+
+async function resetQuantumExperiment() {
+    if (quantumPollTimer) clearInterval(quantumPollTimer);
+    quantumPollTimer = null;
+    try {
+        const response = await fetch("/api/quantum-demo/reset", {
+            method: "POST", credentials: "same-origin"
+        });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data.message || "Cannot reset while running.");
+        ["qsl-job-id", "qsl-factors", "qsl-rsa-check", "qsl-pqc-check"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = id === "qsl-job-id" ? "Waiting for run" : id === "qsl-factors" ? "— × —" : "NOT RUN";
+        });
+        ["qsl-order", "qsl-factor-equation"].forEach(id => document.getElementById(id).textContent = id === "qsl-order" ? "r = —" : "N = —");
+        ["qsl-roundtrip", "qsl-tamper"].forEach(id => {
+            const el = document.getElementById(id);
+            el.textContent = "NOT RUN"; el.className = "";
+        });
+        document.getElementById("qsl-factor-note").textContent = "No results yet";
+        document.getElementById("qsl-pqc-note").textContent = "ML-KEM + authenticated encryption";
+        document.getElementById("qsl-measurements").innerHTML = '<div class="qsl-empty">Measurements will appear after the run starts.</div>';
+        document.getElementById("qsl-console").textContent = "Ready. Click “Run IBM experiment + PQC tests” to launch the real workflow.";
+        document.getElementById("qsl-stage").textContent = "Ready to run";
+        document.getElementById("qsl-time").textContent = "";
+        document.getElementById("qsl-progress-bar").style.width = "0%";
+        document.getElementById("qsl-run-button").disabled = false;
+        setQuantumStatus("idle", "READY");
+    } catch (error) {
+        document.getElementById("qsl-stage").textContent = error.message;
+    }
 }

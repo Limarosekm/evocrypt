@@ -1,5 +1,7 @@
 import os
 import uuid
+import subprocess
+import threading
 
 from datetime import datetime, timedelta
 
@@ -1721,6 +1723,243 @@ def rl_demo():
             success=False,
             message=str(error)
         ), 500
+
+
+# ============================================================
+# QUANTUM RISK ANALYZER
+# ============================================================
+
+@app.route("/api/quantum-risk", methods=["GET", "POST"])
+def quantum_risk():
+    """Explain quantum risks and suitable cryptographic alternatives."""
+
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        algorithm = data.get("algorithm", "")
+    else:
+        algorithm = request.args.get("algorithm", "")
+
+    algorithm = str(algorithm).strip().lower().replace("_", "-")
+
+    risks = {
+        "rsa": {
+            "category": "Public-key encryption/signatures",
+            "risk": "HIGH",
+            "quantum_reason": (
+                "A sufficiently capable fault-tolerant quantum computer "
+                "could use Shor's algorithm to factor RSA moduli."
+            ),
+            "recommendation": "ML-DSA for signatures; ML-KEM plus authenticated symmetric encryption for key establishment and messages.",
+        },
+        "ecc": {
+            "category": "Elliptic-curve cryptography",
+            "risk": "HIGH",
+            "quantum_reason": (
+                "Shor's algorithm could solve the elliptic-curve discrete "
+                "logarithm problem on a sufficiently capable quantum computer."
+            ),
+            "recommendation": "ML-DSA for signatures; ML-KEM plus authenticated symmetric encryption for key establishment and messages.",
+        },
+        "dh": {
+            "category": "Finite-field Diffie–Hellman",
+            "risk": "HIGH",
+            "quantum_reason": (
+                "Shor's algorithm could solve the underlying discrete "
+                "logarithm problem on a sufficiently capable quantum computer."
+            ),
+            "recommendation": "Consider ML-KEM for post-quantum key establishment.",
+        },
+        "aes-128": {
+            "category": "Symmetric encryption",
+            "risk": "MODERATE",
+            "quantum_reason": (
+                "Grover's algorithm offers a theoretical quadratic search "
+                "speedup, subject to substantial practical resource costs."
+            ),
+            "recommendation": "Consider AES-256 for a larger security margin.",
+        },
+        "aes-256": {
+            "category": "Symmetric encryption",
+            "risk": "LOWER",
+            "quantum_reason": (
+                "Grover's algorithm is a theoretical concern, but AES-256 "
+                "provides a larger brute-force security margin."
+            ),
+            "recommendation": "Continue using a correctly implemented authenticated mode such as AES-256-GCM.",
+        },
+        "chacha20": {
+            "category": "Symmetric encryption",
+            "risk": "LOWER",
+            "quantum_reason": (
+                "Grover-style search is a theoretical concern; it does not "
+                "give the same kind of direct break as Shor's algorithm against RSA."
+            ),
+            "recommendation": "Continue using a correctly implemented authenticated construction such as ChaCha20-Poly1305.",
+        },
+        "ml-kem-768": {
+            "category": "Post-quantum key encapsulation",
+            "risk": "DESIGNED FOR POST-QUANTUM USE",
+            "quantum_reason": (
+                "ML-KEM is designed to resist known classical and quantum "
+                "attacks under its underlying security assumptions."
+            ),
+            "recommendation": "Use a vetted implementation and combine the shared secret with authenticated encryption, such as AES-256-GCM.",
+        },
+        "ml-dsa": {
+            "category": "Post-quantum digital signatures",
+            "risk": "DESIGNED FOR POST-QUANTUM USE",
+            "quantum_reason": (
+                "ML-DSA is designed to resist known classical and quantum "
+                "attacks under its underlying security assumptions."
+            ),
+            "recommendation": "Use a vetted implementation and follow current key-management and signature-verification guidance.",
+        },
+    }
+
+    if not algorithm:
+        return jsonify(
+            success=False,
+            message="Provide an algorithm, such as rsa, ecc, aes-256, or ml-kem-768.",
+            supported_algorithms=sorted(risks.keys()),
+        ), 400
+
+    result = risks.get(algorithm)
+
+    if result is None:
+        return jsonify(
+            success=False,
+            message="Algorithm not recognized.",
+            supported_algorithms=sorted(risks.keys()),
+        ), 400
+
+    return jsonify(
+        success=True,
+        algorithm=algorithm,
+        quantum_computer_assumption=(
+            "Risk describes potential future attacks by sufficiently capable "
+            "quantum computers; it does not mean today's quantum hardware can "
+            "break modern production cryptography."
+        ),
+        **result,
+    )
+
+
+
+# ============================================================
+# REAL IBM QUANTUM + POST-QUANTUM SHOWCASE
+# ============================================================
+# This launches the project's existing combined demo in a background
+# thread so a hardware job does not block Flask's request handler.
+QUANTUM_DEMO_STATE = {
+    "status": "idle",
+    "stage": "Ready",
+    "output": "",
+    "return_code": None,
+    "started_at": None,
+    "finished_at": None,
+}
+QUANTUM_DEMO_LOCK = threading.Lock()
+
+
+def _run_quantum_showcase():
+    project_root = os.path.dirname(BASE)
+    command = [
+        __import__("sys").executable,
+        "-u",
+        "-m",
+        "evocrypt.quantum.quantum_vs_pqc_demo",
+        "--backend", "ibm",
+        "--shots", "1024",
+    ]
+
+    with app.app_context():
+        try:
+            process = subprocess.Popen(
+                command,
+                cwd=project_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                bufsize=1,
+                encoding="utf-8",
+                errors="replace",
+            )
+            with QUANTUM_DEMO_LOCK:
+                QUANTUM_DEMO_STATE["stage"] = "Connecting to IBM Quantum / running demo"
+
+            for line in iter(process.stdout.readline, ""):
+                line = line.rstrip("\r\n")
+                with QUANTUM_DEMO_LOCK:
+                    QUANTUM_DEMO_STATE["output"] += line + "\n"
+                    low = line.lower()
+                    if "submitting" in low or "ibm" in low or "hardware" in low:
+                        QUANTUM_DEMO_STATE["stage"] = "IBM Quantum hardware experiment"
+                    elif "post-quantum" in low or "ml-kem" in low or "kem" in low:
+                        QUANTUM_DEMO_STATE["stage"] = "Testing ML-KEM-768 + AES-256-GCM"
+                    elif "pass" in low or "verified" in low or "factor" in low:
+                        QUANTUM_DEMO_STATE["stage"] = "Verifying measured results"
+
+            process.wait()
+            with QUANTUM_DEMO_LOCK:
+                QUANTUM_DEMO_STATE["return_code"] = process.returncode
+                QUANTUM_DEMO_STATE["status"] = "completed" if process.returncode == 0 else "failed"
+                QUANTUM_DEMO_STATE["stage"] = "Completed" if process.returncode == 0 else "Failed — inspect output"
+                QUANTUM_DEMO_STATE["finished_at"] = datetime.utcnow().isoformat() + "Z"
+                QUANTUM_DEMO_STATE["output"] += (
+                    f"\n[process exit code: {process.returncode}]\n"
+                )
+        except Exception as exc:
+            with QUANTUM_DEMO_LOCK:
+                QUANTUM_DEMO_STATE["status"] = "failed"
+                QUANTUM_DEMO_STATE["stage"] = "Could not start experiment"
+                QUANTUM_DEMO_STATE["output"] += f"\nERROR: {type(exc).__name__}: {exc}\n"
+                QUANTUM_DEMO_STATE["finished_at"] = datetime.utcnow().isoformat() + "Z"
+
+
+@app.post("/api/quantum-demo/start")
+def start_quantum_demo():
+    if "user" not in session:
+        return jsonify(success=False, message="Please sign in first."), 401
+
+    with QUANTUM_DEMO_LOCK:
+        if QUANTUM_DEMO_STATE["status"] == "running":
+            return jsonify(success=True, already_running=True, status=QUANTUM_DEMO_STATE)
+
+        QUANTUM_DEMO_STATE.update({
+            "status": "running",
+            "stage": "Starting experiment",
+            "output": "",
+            "return_code": None,
+            "started_at": datetime.utcnow().isoformat() + "Z",
+            "finished_at": None,
+        })
+
+    thread = threading.Thread(target=_run_quantum_showcase, daemon=True)
+    thread.start()
+    return jsonify(success=True, status="running", stage="Starting experiment")
+
+
+@app.get("/api/quantum-demo/status")
+def quantum_demo_status():
+    if "user" not in session:
+        return jsonify(success=False, message="Please sign in first."), 401
+    with QUANTUM_DEMO_LOCK:
+        return jsonify(success=True, **QUANTUM_DEMO_STATE)
+
+
+@app.post("/api/quantum-demo/reset")
+def reset_quantum_demo():
+    if "user" not in session:
+        return jsonify(success=False, message="Please sign in first."), 401
+    with QUANTUM_DEMO_LOCK:
+        if QUANTUM_DEMO_STATE["status"] == "running":
+            return jsonify(success=False, message="The experiment is still running."), 409
+        QUANTUM_DEMO_STATE.update({
+            "status": "idle", "stage": "Ready", "output": "",
+            "return_code": None, "started_at": None, "finished_at": None,
+        })
+    return jsonify(success=True)
+
 
 # ============================================================
 # APPLICATION START

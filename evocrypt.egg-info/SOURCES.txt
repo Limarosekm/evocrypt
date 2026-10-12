@@ -10,7 +10,9 @@ evocrypt.egg-info/requires.txt
 evocrypt.egg-info/top_level.txt
 evocrypt/crypto/__init__.py
 evocrypt/crypto/classical.py
+evocrypt/crypto/engine.py
 evocrypt/crypto/key_manager.py
+evocrypt/crypto/policy.py
 evocrypt/crypto/pqc.py
 evocrypt/middleware/__init__.py
 evocrypt/middleware/flask.py
